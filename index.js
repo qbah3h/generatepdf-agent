@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // PDF Generation endpoint
-app.post('/generate', async (req, res) => {
+app.post('/api/agent', async (req, res) => {
   try {
     const curriculum = req.body;
     
