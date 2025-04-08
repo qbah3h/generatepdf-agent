@@ -19,7 +19,7 @@ app.post('/api/agent', async (req, res) => {
     console.log('Sending request to PDF service with curriculum:', JSON.stringify(curriculum, null, 2));
     
     // Call the PDF generation service
-    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', curriculum, {
+    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', cv, {
       responseType: 'arraybuffer',
       headers: {
         'Content-Type': 'application/json',
@@ -60,3 +60,36 @@ app.post('/api/agent', async (req, res) => {
 app.listen(port, () => {
   console.log(`AI Agent service running on port ${port}`);
 });
+
+const cv = {
+    "fullName": "Heikel Molina",
+        "email": "qbah3h@gmail.com",
+        "phone": "+59891048084",
+        "address": "18 de julio 1445 apto 2, Montevideo",
+        "summary": "Experienced software developer with a focus on web technologies.",
+        "skills": ["Java", "Spring Boot", "JavaScript", "React", "SQL"],
+    "experiences": [
+        {
+            "jobTitle": "Senior Developer",
+                "company": "Tech Solutions",
+                "startDate": "Jan 2020",
+                "endDate": "Present",
+                "description": "Led a team building enterprise applications."
+        }
+    ],
+    "education": [
+        {
+            "degree": "B.Sc. Computer Science",
+                "institution": "University of Example",
+                "startDate": "2015",
+                "endDate": "2019",
+                "details": "Graduated with honors."
+        }
+    ],
+    "projects": [
+        {
+            "title": "Personal Portfolio Website",
+                "description": "Built a responsive portfolio using React and Tailwind."
+        }
+    ]
+}
