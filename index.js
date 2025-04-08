@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const axios = require('axios');
 
 dotenv.config();
 
@@ -10,19 +11,27 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Define your endpoint
-app.post('/api/agent', (req, res) => {
+// PDF Generation endpoint
+app.post('/generate', async (req, res) => {
   try {
-    const input = req.body;
-    // TODO: Implement your AI agent logic here
-    const response = {
-      success: true,
-      message: 'Processing request...',
-      data: {} // Will be defined later
-    };
-    res.json(response);
+    const curriculum = req.body;
+    console.log(curriculum)
+    // Call the PDF generation service
+    const response = await axios.post('https://167.114.145.216:8090/api/cv/generate', curriculum, {
+      responseType: 'arraybuffer'
+    });
+
+    const filename = 'CV - Nombre - Tema.pdf';
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename=${filename}`
+    });
+
+    res.send(response.data);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 
