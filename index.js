@@ -15,10 +15,18 @@ app.use(express.json());
 app.post('/generate', async (req, res) => {
   try {
     const curriculum = req.body;
-    console.log(curriculum)
+    
+    console.log('Sending request to PDF service with curriculum:', JSON.stringify(curriculum, null, 2));
+    
     // Call the PDF generation service
-    const response = await axios.post('https://167.114.145.216:8090/api/cv/generate', curriculum, {
-      responseType: 'arraybuffer'
+    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', curriculum, {
+      responseType: 'arraybuffer',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      // Disable SSL verification since we're using HTTP
+      httpsAgent: false
     });
 
     const filename = 'CV - Nombre - Tema.pdf';
@@ -30,8 +38,22 @@ app.post('/generate', async (req, res) => {
 
     res.send(response.data);
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    res.status(500).json({ error: 'Failed to generate PDF' });
+    console.error('Error generating PDF:', error.message);
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      console.error('Response data:', error.response.data);
+      res.status(error.response.status).json({ error: 'Server responded with an error' });
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+      res.status(503).json({ error: 'No response from PDF service' });
+    } else {
+      // Something happened in setting up the request
+      console.error('Error setting up request:', error.message);
+      res.status(500).json({ error: 'Failed to generate PDF' });
+    }
   }
 });
 
