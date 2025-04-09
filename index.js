@@ -28,7 +28,7 @@ app.post('/api/agent/text', async (req, res) => {
     
     res.json({ 
       success: true,
-      data: 'This endpoint is working'
+      response: 'This endpoint is working'
     });
   } catch (error) {
     console.error('Error processing text:', error);
