@@ -2,8 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
+const multer = require('multer');
 
 dotenv.config();
+
+// Configure multer for handling file uploads
+const upload = multer();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,22 +15,61 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// PDF Generation endpoint
-app.post('/api/agent', async (req, res) => {
+// Text processing endpoint
+app.post('/api/agent/text', async (req, res) => {
   try {
-    const curriculum = req.body;
+    const { from, text } = req.body;
     
-    console.log('Sending request to PDF service with curriculum:', JSON.stringify(curriculum, null, 2));
+    if (!from || !text) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    console.log(`Received text from ${from}:`, text);
     
-    // Call the PDF generation service
-    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', cv, {
-      responseType: 'arraybuffer',
+    // Process the text here
+    // For now, just echo back the received data
+    res.json({ 
+      success: true,
+      message: 'Text received successfully',
+      data: { from, text }
+    });
+  } catch (error) {
+    console.error('Error processing text:', error);
+    res.status(500).json({ error: 'Failed to process text' });
+  }
+});
+
+// Image processing endpoint
+app.post('/api/agent/image', upload.single('image'), async (req, res) => {
+  try {
+    const { from } = req.body;
+    const image = req.file;
+
+    if (!from || !image) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    console.log(`Received image from ${from}:`, {
+      filename: image.originalname,
+      mimetype: image.mimetype,
+      size: image.size
+    });
+
+    // Create FormData instance
+    const formData = new FormData();
+    
+    // Add the curriculum JSON
+    formData.append('curriculumJson', JSON.stringify(cv));
+    
+    // Add the image file
+    formData.append('image', new Blob([image.buffer], { type: image.mimetype }), image.originalname);
+
+    // Call the Spring Boot service
+    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', formData, {
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'multipart/form-data',
       },
-      // Disable SSL verification since we're using HTTP
-      httpsAgent: false
+      responseType: 'arraybuffer'
     });
 
     const filename = 'CV - Nombre - Tema.pdf';
@@ -38,22 +81,8 @@ app.post('/api/agent', async (req, res) => {
 
     res.send(response.data);
   } catch (error) {
-    console.error('Error generating PDF:', error.message);
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-      console.error('Response data:', error.response.data);
-      res.status(error.response.status).json({ error: 'Server responded with an error' });
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('No response received:', error.request);
-      res.status(503).json({ error: 'No response from PDF service' });
-    } else {
-      // Something happened in setting up the request
-      console.error('Error setting up request:', error.message);
-      res.status(500).json({ error: 'Failed to generate PDF' });
-    }
+    console.error('Error processing image:', error);
+    res.status(500).json({ error: 'Failed to process image' });
   }
 });
 
