@@ -26,12 +26,9 @@ app.post('/api/agent/text', async (req, res) => {
 
     console.log(`Received text from ${from}:`, text);
     
-    // Process the text here
-    // For now, just echo back the received data
     res.json({ 
       success: true,
-      message: 'Text received successfully',
-      data: { from, text }
+      data: 'This endpoint is working'
     });
   } catch (error) {
     console.error('Error processing text:', error);
