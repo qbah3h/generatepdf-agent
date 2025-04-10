@@ -1,3 +1,4 @@
+require('dotenv').config();
 const allowedIPs = process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : [];
 
 const normalizeIP = (ip) => {
