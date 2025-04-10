@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
 const multer = require('multer');
+const FormData = require('form-data');
+const { Blob } = require('buffer');
 
 dotenv.config();
 
@@ -58,8 +60,11 @@ app.post('/api/agent/image', upload.single('image'), async (req, res) => {
     // Add the curriculum JSON
     formData.append('curriculumJson', JSON.stringify(cv));
     
-    // Add the image file
-    formData.append('image', new Blob([image.buffer], { type: image.mimetype }), image.originalname);
+    // Add the image file directly from the buffer
+    formData.append('image', image.buffer, {
+      filename: image.originalname,
+      contentType: image.mimetype
+    });
 
     // Call the Spring Boot service
     const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', formData, {
