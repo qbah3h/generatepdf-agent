@@ -25,10 +25,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/agent', agentRoutes);
-app.use('/api/conversations', conversationRoutes);
+// app.use('/api/conversations', conversationRoutes);
 
 // Error handling
-app.use(errorHandler);
+// app.use(errorHandler);
 
 // 404 handler
 app.use((req, res) => {

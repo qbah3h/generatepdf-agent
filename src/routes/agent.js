@@ -14,7 +14,7 @@ router.use(ipFilter);
 // Text processing endpoint
 router.post(
   '/text',
-  pdfGenerationLimiter,
+  // pdfGenerationLimiter,
   validate(textInputValidation),
   processTextInput
 );
@@ -22,7 +22,7 @@ router.post(
 // Image processing endpoint
 router.post(
   '/image',
-  pdfGenerationLimiter,
+  // pdfGenerationLimiter,
   upload.single('image'),
   validate(imageInputValidation),
   processImageInput
