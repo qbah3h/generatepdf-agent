@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const agentRoutes = require('./routes/agent');
+const conversationRoutes = require('./routes/conversation');
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/agent', agentRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // Error handling
 app.use(errorHandler);
