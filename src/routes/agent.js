@@ -1,20 +1,20 @@
 const express = require('express');
 const multer = require('multer');
 const { processTextInput, processImageInput } = require('../controllers/agentController');
-const auth = require('../middleware/auth');
+const ipFilter = require('../middleware/ipFilter');
 const { validate, textInputValidation, imageInputValidation } = require('../middleware/validator');
-const { apiLimiter, pdfGenerationLimiter } = require('../middleware/rateLimiter');
+const { pdfGenerationLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 const upload = multer();
 
-// Apply rate limiting to all routes
-router.use(apiLimiter);
+// Apply IP filtering to all routes
+router.use(ipFilter);
 
 // Text processing endpoint
 router.post(
   '/text',
-  auth,
+  pdfGenerationLimiter,
   validate(textInputValidation),
   processTextInput
 );
@@ -22,7 +22,6 @@ router.post(
 // Image processing endpoint
 router.post(
   '/image',
-  auth,
   pdfGenerationLimiter,
   upload.single('image'),
   validate(imageInputValidation),
