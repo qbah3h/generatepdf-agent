@@ -67,7 +67,7 @@ app.post('/api/agent/image', upload.single('image'), async (req, res) => {
     });
 
     // Call the Spring Boot service
-    const response = await axios.post('http://167.114.145.216:8090/api/cv/generate', formData, {
+    const response = await axios.post(`${process.env.SERVICE_URL}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
