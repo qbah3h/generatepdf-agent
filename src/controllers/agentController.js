@@ -71,6 +71,8 @@ const processImageInput = asyncHandler(async (req, res) => {
   // For now, keeping the existing PDF generation logic
   // ... [Your existing PDF generation code]
 
+  console.log(`processImageInput --- Response ${JSON.stringify(image)}`)
+
   // Create or update conversation
   let conversation = await Conversation.findOne({
     userId: from,
@@ -87,7 +89,7 @@ const processImageInput = asyncHandler(async (req, res) => {
   // Add user message to conversation
   conversation.messages.push({
     role: 'user',
-    content: text
+    content: "imagen"
   });
 
   // TODO: Process with LLM here
