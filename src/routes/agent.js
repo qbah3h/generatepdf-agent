@@ -161,9 +161,9 @@ Always return a full updated JSON with the new message and any changed fields on
   // Update curriculum in database
   await curriculum.save();
 
-  console.log('AI response:', curriculum.lastChatbotMessage);
+  console.log('AI response:', aiResponse.chatbotMessage);
   
-  return curriculum.lastChatbotMessage;
+  return aiResponse.chatbotMessage;
 }
 
 module.exports = router;
