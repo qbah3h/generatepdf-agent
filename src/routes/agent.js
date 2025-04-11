@@ -4,6 +4,7 @@ const ipFilter = require('../middleware/ipFilter');
 const { validate, textInputValidation, imageInputValidation } = require('../middleware/validator');
 const { pdfGenerationLimiter } = require('../middleware/rateLimiter');
 const openai = require('../config/openai');
+const Curriculum = require('../models/curriculum');
 
 
 const router = express.Router();
@@ -46,7 +47,7 @@ async function orchestrateProcessing(req, res, next) {
 
     console.log('Processing context:', req.processingContext);
 
-    await processTextInput(req, cvObj);
+    await processTextInput(req);
 
     next();
   } catch (error) {
@@ -104,7 +105,7 @@ router.post(
   }
 );
 
-async function processTextInput(req, cvObj) {
+async function processTextInput(req) {
   const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
 The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
 Your response must always return the updated JSON, including:
@@ -121,10 +122,12 @@ Always return a full updated JSON with the new message and any changed fields on
   console.log('Body context:', req.body); // .from .text
   console.log('Contains image:', req.file);
 
+  const { from, text } = req.body;
 
-  let curriculum = cvObj; // load curriculum from database or create new. Status is new
+  // Load curriculum from database or create new
+  let curriculum = await Curriculum.findOne({ status: 'new' }) || await Curriculum.create({});
 
-  curriculum.userMessage = req.body.text;
+  curriculum.userMessage = text;
 
   if (req.file) {
     curriculum.image = true;
@@ -148,76 +151,10 @@ Always return a full updated JSON with the new message and any changed fields on
   curriculum.lastChatbotMessage = curriculum.chatbotMessage;
   curriculum.chatbotMessage = "";
 
-  // update curriculum in database
+  // Update curriculum in database
+  await curriculum.save();
 
   return curriculum.lastChatbotMessage;
-}
-
-
-const cvObj = {
-  "lastChatbotMessage": "",
-  "userMessage": "",
-  "chatbotMessage": "",
-  "status": "new", 
-  "image": false,
-  "section": [
-    {
-      "status": "",
-      "name": "information",
-      "content": [
-        {
-          "fullName": "",
-          "email": "",
-          "phone": "",
-          "address": "",
-          "summary": "",
-          "skills": [
-            "Java",
-            "Spring Boot",
-            "JavaScript",
-            "React",
-            "SQL"
-          ]
-        }
-      ]
-    },
-    {
-      "status": "",
-      "name": "experiences",
-      "content": [
-        {
-          "jobTitle": "",
-          "company": "",
-          "startDate": "",
-          "endDate": "",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "status": "",
-      "name": "education",
-      "content": [
-        {
-          "degree": "",
-          "institution": "",
-          "startDate": "",
-          "endDate": "",
-          "details": ""
-        }
-      ]
-    },
-    {
-      "status": "",
-      "name": "projects",
-      "content": [
-        {
-          "title": "",
-          "description": ""
-        }
-      ]
-    }
-  ]
 }
 
 module.exports = router;
