@@ -8,30 +8,30 @@ const curriculumSchema = new mongoose.Schema({
   status: { type: String, default: 'new' },
   image: { type: Boolean, default: false },
   section: [{
-    status: { type: String, default: '' },
-    name: { type: String, required: true },
+    status: { type: String, enum: ['completed', 'working', 'pending'], default: 'pending' },
+    name: { type: String, enum: ['information', 'experiences', 'education', 'projects'], required: true },
     content: [{
-      // Information section
+      // Common fields for PDF generation service
       fullName: { type: String, default: '' },
       email: { type: String, default: '' },
       phone: { type: String, default: '' },
       address: { type: String, default: '' },
       summary: { type: String, default: '' },
-      skills: [{ type: String }],
+      skills: { type: [String], default: [] },
       
-      // Experience section
+      // Experience fields
       jobTitle: { type: String, default: '' },
       company: { type: String, default: '' },
       startDate: { type: String, default: '' },
       endDate: { type: String, default: '' },
       description: { type: String, default: '' },
       
-      // Education section
+      // Education fields
       degree: { type: String, default: '' },
       institution: { type: String, default: '' },
       details: { type: String, default: '' },
       
-      // Project section
+      // Project fields
       title: { type: String, default: '' },
       description: { type: String, default: '' }
     }]
@@ -39,6 +39,59 @@ const curriculumSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Static method to create a new curriculum with default sections
+curriculumSchema.statics.createWithDefaultSections = async function(from) {
+  const defaultSections = [
+    {
+      status: 'pending',
+      name: 'information',
+      content: [{
+        fullName: '',
+        email: '',
+        phone: '',
+        address: '',
+        summary: '',
+        skills: []
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'experiences',
+      content: [{
+        jobTitle: '',
+        company: '',
+        startDate: '',
+        endDate: '',
+        description: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'education',
+      content: [{
+        degree: '',
+        institution: '',
+        startDate: '',
+        endDate: '',
+        details: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'projects',
+      content: [{
+        title: '',
+        description: ''
+      }]
+    }
+  ];
+
+  return this.create({
+    from,
+    section: defaultSections
+  });
+};
 
 const Curriculum = mongoose.model('Curriculum', curriculumSchema);
 
