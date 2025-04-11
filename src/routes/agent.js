@@ -18,7 +18,8 @@ async function orchestrateProcessing(req, res, next) {
   try {
     // Determine which endpoint was called
     const endpoint = req.path.substring(1); // removes the leading slash
-
+    console.log("----------------------");
+    console.log('Endpoint:', endpoint);
     // Add endpoint info to the request object for downstream use
     req.processingContext = {
       endpoint,
