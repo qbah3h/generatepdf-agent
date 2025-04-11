@@ -122,10 +122,10 @@ Always return a full updated JSON with the new message and any changed fields on
   console.log('Contains image:', req.file);
 
 
-  let curriculum = cvObj;
+  let curriculum = cvObj; // load curriculum from database or create new. Status is new
 
-  curriculum.lastUserMessage = req.body.text;
-  curriculum.newChatbotMessage = "";
+  curriculum.userMessage = req.body.text;
+
   if (req.file) {
     curriculum.image = true;
   }
@@ -141,20 +141,14 @@ Always return a full updated JSON with the new message and any changed fields on
     model: "gpt-3.5-turbo-0125",
     messages: [systemMessage]
   });
-  console.log('Response:', response);
+  curriculum = JSON.parse(response.choices[0].message.content);
 
-  curriculum.newChatbotMessage = response.choices[0].message.content;
+  console.log('JSON response from AI:', curriculum);
 
-  console.log('New chatbot message:', curriculum.newChatbotMessage);
+  curriculum.lastChatbotMessage = curriculum.chatbotMessage;
+  curriculum.chatbotMessage = "";
 
-
-  // ask AI with system message obj
-  // set lastChatbot message to current newChatbotMessage
-  // return new chatbot message
-
-  // if cv is completed, generate
-  // update fields, save to database
-  // send back cv
+  // update curriculum in database
 
   return curriculum.lastChatbotMessage;
 }
@@ -162,9 +156,9 @@ Always return a full updated JSON with the new message and any changed fields on
 
 const cvObj = {
   "lastChatbotMessage": "",
-  "lastUserMessage": "",
-  "newChatbotMessage": "",
-  "status": "active",
+  "userMessage": "",
+  "chatbotMessage": "",
+  "status": "new", 
   "image": false,
   "section": [
     {
