@@ -147,14 +147,15 @@ Always return a full updated JSON with the new message and any changed fields on
     messages: [systemMessage]
   });
 
-  const aiResponse = response.choices[0].message.content;
-  console.log('Raw AI response:', aiResponse);
+  const aiResponseText = response.choices[0].message.content;
+  console.log('Raw AI response:', aiResponseText);
 
+  const aiResponse = JSON.parse(aiResponseText);
 
   // Update the Mongoose document fields
   Object.assign(curriculum, {
     status: aiResponse.status,
-    section: aiResponse.section,
+    section: aiResponse.section || [],
     lastChatbotMessage: aiResponse.chatbotMessage,
     chatbotMessage: ""
   });
@@ -162,6 +163,8 @@ Always return a full updated JSON with the new message and any changed fields on
   // Update curriculum in database
   await curriculum.save();
 
+  console.log('AI response:', curriculum.lastChatbotMessage);
+  
   return curriculum.lastChatbotMessage;
 }
 
