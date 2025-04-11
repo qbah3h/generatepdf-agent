@@ -126,9 +126,10 @@ Always return a full updated JSON with the new message and any changed fields on
   const { from, text } = req.body;
 
   // Load curriculum from database or create new
-  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.create({ from });
+  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.create({ from, status: 'new' });
 
   curriculum.userMessage = text;
+
 
   if (req.file) {
     curriculum.image = true;
