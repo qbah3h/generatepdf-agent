@@ -133,15 +133,12 @@ Do not include extra explanations or summaries. Return only the updated JSON obj
   ` };
 
 
-  const response = await openai.createCompletion({
-    model: "text-davinci-002",
-    prompt: systemMessage.content,
-    temperature: 0.7,
-    max_tokens: 50,
-    top_p: 1,
-    frequency_penalty: 0.5,
-    presence_penalty: 0.5,
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo-0125",
+    input: systemMessage
   });
+  console.log('Response:', response);
+  
   curriculum.newChatbotMessage = response.data.choices[0].text;
 
   console.log('New chatbot message:', curriculum.newChatbotMessage);
