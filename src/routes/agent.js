@@ -145,9 +145,19 @@ Always return a full updated JSON with the new message and any changed fields on
     model: "gpt-3.5-turbo-0125",
     messages: [systemMessage]
   });
-  const aiResponse = JSON.parse(response.choices[0].message.content);
 
-  console.log('JSON response from AI:', aiResponse);
+  const aiResponseText = response.choices[0].message.content;
+  console.log('Raw AI response:', aiResponseText);
+
+  let aiResponse;
+  try {
+    aiResponse = JSON.parse(aiResponseText.trim());
+    console.log('Parsed JSON response from AI:', aiResponse);
+  } catch (error) {
+    console.error('Error parsing AI response:', error);
+    console.error('AI response content:', aiResponseText);
+    throw new Error('Invalid JSON response from AI');
+  }
 
   // Update the Mongoose document fields
   Object.assign(curriculum, {

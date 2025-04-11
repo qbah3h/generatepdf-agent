@@ -14,9 +14,9 @@ const ipFilter = (req, res, next) => {
                       req.socket.remoteAddress;
 
   const clientIP = normalizeIP(rawClientIP);
-  console.log('Raw client IP:', rawClientIP);
-  console.log('Normalized client IP:', clientIP);
-  console.log('Allowed IPs:', allowedIPs);
+  // console.log('Raw client IP:', rawClientIP);
+  // console.log('Normalized client IP:', clientIP);
+  // console.log('Allowed IPs:', allowedIPs);
   
   if (!allowedIPs.includes(clientIP)) {
     console.log('Access denied for IP:', clientIP);
