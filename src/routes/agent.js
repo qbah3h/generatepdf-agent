@@ -113,7 +113,7 @@ async function processTextInput(req) {
   const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
 The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
 Your response must always return the updated JSON, including:
-- A new message in newChatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
+- A new message in chatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
 - An updated status field:
 Use "active" if the conversation is still in progress.
 Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
