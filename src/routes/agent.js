@@ -43,10 +43,8 @@ async function orchestrateProcessing(req, res, next) {
     // CUSTOM CODE SECTION END //
 
     console.log('Processing context:', req.processingContext);
-    console.log('Body context:', req.body);
-    console.log('Contains image:', req.file);
 
-    processTextInput(req, cvObj);
+    await processTextInput(req, cvObj);
 
     next();
   } catch (error) {
@@ -104,13 +102,7 @@ router.post(
   }
 );
 
-/**
-     * Process text input from the user
-     * @param {Object} req - Express request object
-     * @param {Object} cvObj - Latest CV object
-     * @returns {Object} Updated CV object
-     */
-function processTextInput(req, cvObj) {
+async function processTextInput(req, cvObj) {
   const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
 The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
 Your response must always return the updated JSON, including:
@@ -120,15 +112,38 @@ Use "active" if the conversation is still in progress.
 Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
 Do not include extra explanations or summaries. Return only the updated JSON object.`;
 
+  console.log('Body context:', req.body); // .from .text
+  console.log('Contains image:', req.file);
+
+
   let curriculum = cvObj;
+
   curriculum.lastUserMessage = req.body.text;
   curriculum.newChatbotMessage = "";
+  if (req.file) {
+    curriculum.image = true;
+  }
 
   const systemMessage = {
     role: 'system', content: `
   ${systemPrompt}
   ${curriculum}
   ` };
+
+
+  const response = await openai.createCompletion({
+    model: "text-davinci-002",
+    prompt: systemMessage.content,
+    temperature: 0.7,
+    max_tokens: 50,
+    top_p: 1,
+    frequency_penalty: 0.5,
+    presence_penalty: 0.5,
+  });
+  curriculum.newChatbotMessage = response.data.choices[0].text;
+
+  console.log('New chatbot message:', curriculum.newChatbotMessage);
+
 
   // ask AI with system message obj
   // set lastChatbot message to current newChatbotMessage
@@ -138,7 +153,7 @@ Do not include extra explanations or summaries. Return only the updated JSON obj
   // update fields, save to database
   // send back cv
 
-  return curriculum;
+  return curriculum.lastChatbotMessage;
 }
 
 
@@ -147,6 +162,7 @@ const cvObj = {
   "lastUserMessage": "",
   "newChatbotMessage": "",
   "status": "active",
+  "image": false,
   "section": [
     {
       "status": "",
