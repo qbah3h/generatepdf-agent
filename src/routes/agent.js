@@ -147,10 +147,8 @@ Always return a full updated JSON with the new message and any changed fields on
     messages: [systemMessage]
   });
 
-  const aiResponseText = response.choices[0].message.content;
-  console.log('Raw AI response:', aiResponseText);
-
-  const aiResponse = JSON.parse(aiResponseText);
+  const aiResponse = response.choices[0].message.content;
+  console.log('Raw AI response:', aiResponse);
 
   // Update the Mongoose document fields
   Object.assign(curriculum, {
