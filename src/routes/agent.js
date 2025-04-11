@@ -112,7 +112,11 @@ Your response must always return the updated JSON, including:
 - An updated status field:
 Use "active" if the conversation is still in progress.
 Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
-Do not include extra explanations or summaries. Return only the updated JSON object.`;
+Do not include extra explanations or summaries. Return only the updated JSON object.
+Respect the original structure. Never return a different schema unless asked
+Update only one section at a time. For example, ask for the full name, then update the information section with it, and move on.
+Use lastChatbotMessage + lastUserMessage as your state. It should drive what gets asked or updated next.
+Always return a full updated JSON with the new message and any changed fields only.`;
 
   console.log('Body context:', req.body); // .from .text
   console.log('Contains image:', req.file);
