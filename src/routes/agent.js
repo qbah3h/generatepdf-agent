@@ -135,11 +135,11 @@ Do not include extra explanations or summaries. Return only the updated JSON obj
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-0125",
-    input: systemMessage
+    messages: [systemMessage]
   });
   console.log('Response:', response);
-  
-  curriculum.newChatbotMessage = response.data.choices[0].text;
+
+  curriculum.newChatbotMessage = response.choices[0].message.content;
 
   console.log('New chatbot message:', curriculum.newChatbotMessage);
 
