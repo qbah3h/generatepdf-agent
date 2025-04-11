@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const curriculumSchema = new mongoose.Schema({
+  from: { type: String, required: true },
   lastChatbotMessage: { type: String, default: '' },
   userMessage: { type: String, default: '' },
   chatbotMessage: { type: String, default: '' },

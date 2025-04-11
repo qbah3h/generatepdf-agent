@@ -47,7 +47,8 @@ async function orchestrateProcessing(req, res, next) {
 
     console.log('Processing context:', req.processingContext);
 
-    await processTextInput(req);
+    // Store the result in req object for the endpoint handler
+    req.processedResult = await processTextInput(req);
 
     next();
   } catch (error) {
@@ -72,7 +73,10 @@ router.post(
        */
       // CUSTOM CODE SECTION END //
 
-      res.json({ success: true, message: 'Text processing completed' });
+      res.json({ 
+        success: true, 
+        message: req.processedResult 
+      });
     } catch (error) {
       next(error);
     }
@@ -119,13 +123,10 @@ Update only one section at a time. For example, ask for the full name, then upda
 Use lastChatbotMessage + lastUserMessage as your state. It should drive what gets asked or updated next.
 Always return a full updated JSON with the new message and any changed fields only.`;
 
-  console.log('Body context:', req.body); // .from .text
-  console.log('Contains image:', req.file);
-
   const { from, text } = req.body;
 
   // Load curriculum from database or create new
-  let curriculum = await Curriculum.findOne({ status: 'new' }) || await Curriculum.create({});
+  let curriculum = await Curriculum.findOne({ status: 'new', from }) || await Curriculum.create({ from });
 
   curriculum.userMessage = text;
 
