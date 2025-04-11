@@ -3,7 +3,7 @@ const multer = require('multer');
 const ipFilter = require('../middleware/ipFilter');
 const { validate, textInputValidation, imageInputValidation } = require('../middleware/validator');
 const { pdfGenerationLimiter } = require('../middleware/rateLimiter');
-const { openai } = require('../config/openai');
+const openai = require('../config/openai');
 
 
 const router = express.Router();
