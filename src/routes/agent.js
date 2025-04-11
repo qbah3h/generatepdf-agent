@@ -145,12 +145,17 @@ Always return a full updated JSON with the new message and any changed fields on
     model: "gpt-3.5-turbo-0125",
     messages: [systemMessage]
   });
-  curriculum = JSON.parse(response.choices[0].message.content);
+  const aiResponse = JSON.parse(response.choices[0].message.content);
 
-  console.log('JSON response from AI:', curriculum);
+  console.log('JSON response from AI:', aiResponse);
 
-  curriculum.lastChatbotMessage = curriculum.chatbotMessage;
-  curriculum.chatbotMessage = "";
+  // Update the Mongoose document fields
+  Object.assign(curriculum, {
+    status: aiResponse.status,
+    section: aiResponse.section,
+    lastChatbotMessage: aiResponse.chatbotMessage,
+    chatbotMessage: ""
+  });
 
   // Update curriculum in database
   await curriculum.save();
