@@ -148,7 +148,7 @@ Always return a full updated JSON with the new message and any changed fields on
   });
 
   const aiResponseText = response.choices[0].message.content;
-  // console.log('Raw AI response:', aiResponseText);
+  console.log('Raw AI response:', aiResponseText);
 
   const aiResponse = JSON.parse(aiResponseText);
   // console.log('Parsed AI response:', aiResponse);
