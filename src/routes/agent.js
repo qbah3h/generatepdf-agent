@@ -152,12 +152,14 @@ Always return a full updated JSON with the new message and any changed fields on
   console.log('Parsed AI response:', aiResponse);
 
   // Update the Mongoose document fields
-  Object.assign(curriculum, {
-    status: aiResponse.status,
-    section: aiResponse.section || [],
-    lastChatbotMessage: aiResponse.chatbotMessage,
-    chatbotMessage: ""
-  });
+  if (curriculum.status === 'active') {
+    curriculum.status = 'inactive';
+    await curriculum.save();
+
+    curriculum = await Curriculum.createWithDefaultSections(from);
+  }
+
+  Object.assign(curriculum, aiResponse);
 
   // Update curriculum in database
   await curriculum.save();
