@@ -129,6 +129,7 @@ Always return a full updated JSON with the new message and any changed fields on
   let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
 
   curriculum.userMessage = text;
+  curriculum.chatbotMessage = '';
 
   if (req.file) {
     curriculum.image = true;
@@ -151,15 +152,17 @@ Always return a full updated JSON with the new message and any changed fields on
   const aiResponse = JSON.parse(aiResponseText);
   console.log('Parsed AI response:', aiResponse);
 
-  // Update the Mongoose document fields
-  if (curriculum.status === 'active') {
-    curriculum.status = 'inactive';
-    await curriculum.save();
 
-    curriculum = await Curriculum.createWithDefaultSections(from);
-  }
+  // Update the Mongoose document fields
+  // if (curriculum.status === 'active') {
+  //   curriculum.status = 'inactive';
+  //   await curriculum.save();
+
+  //   curriculum = await Curriculum.createWithDefaultSections(from);
+  // }
 
   Object.assign(curriculum, aiResponse);
+  curriculum.lastChatbotMessage = curriculum.chatbotMessage;
 
   // Update curriculum in database
   await curriculum.save();
