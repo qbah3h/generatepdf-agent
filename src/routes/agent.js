@@ -130,7 +130,6 @@ Always return a full updated JSON with the new message and any changed fields on
 
   curriculum.userMessage = text;
 
-
   if (req.file) {
     curriculum.image = true;
   }
@@ -140,7 +139,6 @@ Always return a full updated JSON with the new message and any changed fields on
   ${systemPrompt}
   ${curriculum}
   ` };
-
 
   const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo-0125",
