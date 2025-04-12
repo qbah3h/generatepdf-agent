@@ -5,7 +5,7 @@ const curriculumSchema = new mongoose.Schema({
   lastChatbotMessage: { type: String, default: '' },
   userMessage: { type: String, default: '' },
   chatbotMessage: { type: String, default: '' },
-  status: { type: String, default: 'active' },
+  status: { type: String, default: 'new' },
   image: { type: Boolean, default: false },
   section: [{
     status: { type: String, enum: ['completed', 'working', 'pending'], default: 'pending' },
