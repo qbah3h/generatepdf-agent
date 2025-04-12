@@ -129,7 +129,6 @@ Always return a full updated JSON with the new message and any changed fields on
   let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
 
   curriculum.userMessage = text;
-  curriculum.chatbotMessage = '';
 
   if (req.file) {
     curriculum.image = true;
@@ -141,28 +140,22 @@ Always return a full updated JSON with the new message and any changed fields on
   ${curriculum}
   ` };
 
+  console.log('System prompt:', systemMessage.content);
+  
   const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo-0125",
+    model: 'gpt-4o', // "gpt-3.5-turbo-0125",
     messages: [systemMessage]
   });
 
   const aiResponseText = response.choices[0].message.content;
-  console.log('Raw AI response:', aiResponseText);
+  // console.log('Raw AI response:', aiResponseText);
 
   const aiResponse = JSON.parse(aiResponseText);
-  console.log('Parsed AI response:', aiResponse);
-
-
-  // Update the Mongoose document fields
-  // if (curriculum.status === 'active') {
-  //   curriculum.status = 'inactive';
-  //   await curriculum.save();
-
-  //   curriculum = await Curriculum.createWithDefaultSections(from);
-  // }
+  // console.log('Parsed AI response:', aiResponse);
 
   Object.assign(curriculum, aiResponse);
   curriculum.lastChatbotMessage = curriculum.chatbotMessage;
+  curriculum.chatbotMessage = '';
 
   // Update curriculum in database
   await curriculum.save();
