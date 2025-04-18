@@ -119,10 +119,10 @@ Your response must always return the updated JSON, including:
 - An updated status field:
 Use "active" if the conversation is still in progress.
 Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
-Do not include extra explanations or summaries. Return only the updated JSON object.
-Respect the original structure. Never return a different schema unless asked
-Update only one section at a time. For example, ask for the full name, then update the information section with it, and move on.
-Use lastChatbotMessage + lastUserMessage as your state. It should drive what gets asked or updated next.
+Do not include extra explanations or summaries. Return only the updated JSON object as it will be used as a function input.
+Respect the original structure.
+Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
+Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
 Always return a full updated JSON with the new message and any changed fields only.`;
 
   const { from, text } = req.body;
@@ -176,10 +176,18 @@ Always return a full updated JSON with the new message and any changed fields on
  * Maintains conversation history by timestamp, loads or creates conversation for the 'from' number, and uses a system prompt.
  */
 async function cvAgent(req) {
-  const systemPrompt = `You are a CV creator assistant. Maintain a conversation history to help the user build their CV step by step. 
-  Always respond with the next question or update needed for the CV, referencing the conversation so far. 
-  Only ask what is necessary to move the process forward.
-  Return the updated CV JSON. Do not provide extra explanations as the JSON will be used as a object variable in javascript code.`;
+  const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
+The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
+Your response must always return the updated JSON, including:
+- A new message in chatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
+- An updated status field:
+Use "active" if the conversation is still in progress.
+Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
+Do not include extra explanations or summaries. Return only the updated JSON object as it will be used as a function input.
+Respect the original structure.
+Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
+Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
+Always return a full updated JSON with the new message and any changed fields only.`;
 
   const { from, text } = req.body;
 
