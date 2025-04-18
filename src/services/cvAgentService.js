@@ -70,6 +70,7 @@ Update each section status accordingly 'completed', 'working', 'pending'`;
     inputTokens,
     outputTokens
   });
+  conversation.markModified('metadata');
 
   let cleaned = aiResponseText.trim();
   if (cleaned.startsWith('```')) {
