@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  lastChatbotMessage: { type: String, default: '' },
   userMessage: { type: String, default: '' },
   chatbotMessage: { type: String, default: '' },
   status: { type: String, default: 'active' },
@@ -47,11 +46,11 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
       status: 'pending',
       name: 'information',
       content: [{
-        fullName: '',
-        email: '',
-        phone: '',
-        address: '',
-        summary: '',
+        fullName: '.',
+        email: '.',
+        phone: '.',
+        address: '.',
+        summary: '.',
         skills: []
       }]
     },
@@ -59,30 +58,30 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
       status: 'pending',
       name: 'experiences',
       content: [{
-        jobTitle: '',
-        company: '',
-        startDate: '',
-        endDate: '',
-        description: ''
+        jobTitle: '.',
+        company: '.',
+        startDate: '.',
+        endDate: '.',
+        description: '.'
       }]
     },
     {
       status: 'pending',
       name: 'education',
       content: [{
-        degree: '',
-        institution: '',
-        startDate: '',
-        endDate: '',
-        details: ''
+        degree: '.',
+        institution: '.',
+        startDate: '.',
+        endDate: '.',
+        details: '.'
       }]
     },
     {
       status: 'pending',
       name: 'projects',
       content: [{
-        title: '',
-        description: ''
+        title: '.',
+        description: '.'
       }]
     }
   ];
