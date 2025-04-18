@@ -156,7 +156,8 @@ Do not include extra explanations or summaries. Return only the updated JSON obj
 Respect the original structure.
 Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
 Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
-Always return a full updated JSON with the new message and any changed fields only.`;
+Always return a full updated JSON with the new message and any changed fields only.
+Only update chatbotMessage and section if the user has provided a valid input. Do not update any other field`;
 
   const { from, text } = req.body;
 
@@ -188,15 +189,15 @@ Always return a full updated JSON with the new message and any changed fields on
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   // Build chat history for OpenAI
-  const inputMessage = [
+  const inputMessages = [
     { role: 'system', content: systemPrompt + curriculum },
   ];
-  console.log('Input message:', inputMessage);
+  console.log('Input messages:', inputMessages);
 
   // Call OpenAI API and count tokens
   const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
     model: 'gpt-4o',
-    messages: inputMessage
+    messages: inputMessages
   });
 
   const aiResponseText = response.choices[0].message.content;
@@ -211,7 +212,11 @@ Always return a full updated JSON with the new message and any changed fields on
     outputTokens
   });
 
-  const aiResponse = JSON.parse(aiResponseText);
+  let cleaned = aiResponseText.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+  }
+  const aiResponse = JSON.parse(cleaned);
 
   Object.assign(curriculum, aiResponse);
   await curriculum.save();
