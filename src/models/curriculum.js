@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
   userMessage: { type: String, default: '' },
-  chatbotMessage: { type: String, default: '' },
+  prevChatbotMessage: { type: String, default: '' },
+  newChatbotMessage: { type: String, default: '' },
   status: { type: String, default: 'active' },
   image: { type: Boolean, default: false },
   section: [{

@@ -35,8 +35,10 @@ Only update chatbotMessage and section if the user has provided a valid input. D
   curriculum.userMessage = text;
 
   if (conversation.messages.length > 0) {
-    curriculum.lastChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
+    curriculum.prevChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
   }
+
+  curriculum.newChatbotMessage = '';
 
   conversation.messages.push({
     role: 'user',
@@ -77,12 +79,12 @@ Only update chatbotMessage and section if the user has provided a valid input. D
 
   conversation.messages.push({
     role: 'assistant',
-    content: aiResponse.chatbotMessage,
+    content: aiResponse.newChatbotMessage,
     timestamp: new Date()
   });
   await conversation.save();
 
-  return aiResponse.chatbotMessage;
+  return aiResponse.newChatbotMessage;
 }
 
 module.exports = { cvAgent };
