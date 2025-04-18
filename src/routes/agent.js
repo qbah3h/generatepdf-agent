@@ -173,7 +173,7 @@ Only update chatbotMessage and section if the user has provided a valid input. D
 
   let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
   curriculum.userMessage = text;
-  
+
   if (conversation.messages.length > 0) {
     curriculum.lastChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
   }
@@ -216,6 +216,22 @@ Only update chatbotMessage and section if the user has provided a valid input. D
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
   }
+  
+  if (cleaned && typeof cleaned === 'object') {
+    // Convert top-level _id if it's a string
+    if (typeof cleaned._id === 'string') {
+      cleaned._id = new mongoose.Types.ObjectId(cleaned._id);
+    }
+
+    // Convert _id in section array if present
+    if (Array.isArray(cleaned.section)) {
+      cleaned.section = cleaned.section.map(sec => ({
+        ...sec,
+        _id: typeof sec._id === 'string' ? new mongoose.Types.ObjectId(sec._id) : sec._id
+      }));
+    }
+  }
+
   const aiResponse = JSON.parse(cleaned);
 
   Object.assign(curriculum, aiResponse);
