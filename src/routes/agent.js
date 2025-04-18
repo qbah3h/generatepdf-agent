@@ -5,6 +5,7 @@ const { validate, textInputValidation, imageInputValidation } = require('../midd
 const { pdfGenerationLimiter } = require('../middleware/rateLimiter');
 const openai = require('../config/openai');
 const Curriculum = require('../models/curriculum');
+const Conversation = require('../models/conversation');
 
 
 const router = express.Router();
@@ -48,7 +49,8 @@ async function orchestrateProcessing(req, res, next) {
     console.log('Processing context:', req.processingContext);
 
     // Store the result in req object for the endpoint handler
-    req.processedResult = await processTextInput(req);
+    // req.processedResult = await processTextInput(req);
+    req.processedResult = await cvAgent(req);
 
     next();
   } catch (error) {
@@ -73,9 +75,9 @@ router.post(
        */
       // CUSTOM CODE SECTION END //
 
-      res.json({ 
-        success: true, 
-        message: req.processedResult 
+      res.json({
+        success: true,
+        message: req.processedResult
       });
     } catch (error) {
       next(error);
@@ -141,7 +143,7 @@ Always return a full updated JSON with the new message and any changed fields on
   ` };
 
   console.log('System prompt:', systemMessage.content);
-  
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o', // "gpt-3.5-turbo-0125",
     messages: [systemMessage]
@@ -151,10 +153,10 @@ Always return a full updated JSON with the new message and any changed fields on
   console.log('Raw AI response:', aiResponseText);
 
   let cleaned = aiResponseText.trim();
-if (cleaned.startsWith('```')) {
-  cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-}
-const aiResponse = JSON.parse(cleaned);
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+  }
+  const aiResponse = JSON.parse(cleaned);
   // console.log('Parsed AI response:', aiResponse);
 
   Object.assign(curriculum, aiResponse);
@@ -165,7 +167,69 @@ const aiResponse = JSON.parse(cleaned);
   await curriculum.save();
 
   console.log('AI response:', aiResponse.chatbotMessage);
-  
+
+  return aiResponse.chatbotMessage;
+}
+
+/**
+ * Conversation-aware CV agent function
+ * Maintains conversation history by timestamp, loads or creates conversation for the 'from' number, and uses a system prompt.
+ */
+async function cvAgent(req) {
+  const systemPrompt = `You are a CV creator assistant. Maintain a conversation history to help the user build their CV step by step. Always respond with the next question or update needed for the CV, referencing the conversation so far. Only ask what is necessary to move the process forward.\nReturn the updated CV JSON and the assistant's message. Do not provide extra explanations.`;
+
+  const { from, text } = req.body;
+
+  // Load or create conversation for this 'from' number
+  let conversation = await Conversation.findOne({ userId: from, status: 'active' });
+  if (!conversation) {
+    conversation = await Conversation.create({
+      userId: from,
+      messages: [],
+      status: 'active'
+    });
+  }
+
+  // Add user message to conversation
+  conversation.messages.push({
+    role: 'user',
+    content: text,
+    timestamp: new Date()
+  });
+
+  // Sort messages by timestamp (ascending)
+  conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  // Build chat history for OpenAI
+  const chatHistory = [
+    // { role: 'system', content: systemPrompt },
+    ...conversation.messages.map(msg => ({ role: msg.role, content: msg.content }))
+  ];
+
+  // Call OpenAI API
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: chatHistory
+  });
+
+  const aiResponseText = response.choices[0].message.content;
+  console.log('Raw AI response:', aiResponseText);
+
+  let cleaned = aiResponseText.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+  }
+  const aiResponse = JSON.parse(cleaned);
+
+  // Add assistant message to conversation
+  conversation.messages.push({
+    role: 'assistant',
+    content: aiResponse.chatbotMessage,
+    timestamp: new Date()
+  });
+
+  await conversation.save();
+
   return aiResponse.chatbotMessage;
 }
 
