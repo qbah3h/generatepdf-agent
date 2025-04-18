@@ -52,7 +52,7 @@ Update currentSection depending on the current section you are working on`;
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   const inputMessages = [
-    { role: 'system', content: systemPrompt + JSON.stringify(curriculum) },
+    { role: 'system', content: systemPrompt + "Here is the exact CV schema you must follow: " + JSON.stringify(curriculum) + " Only these fields may be present; do NOT add anything else." },
   ];
   console.log('Input messages:', inputMessages);
 
