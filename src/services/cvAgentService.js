@@ -18,7 +18,8 @@ Respect the original structure.
 Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
 Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
 Always return a full updated JSON with the new message and any changed fields only.
-Only update chatbotMessage and section if the user has provided a valid input. Do not update any other field`;
+Only update chatbotMessage and section if the user has provided a valid input. Do not update any other field.
+You can ask for more than one field at a time on the same section.`;
 
   const { from, text } = req.body;
 
