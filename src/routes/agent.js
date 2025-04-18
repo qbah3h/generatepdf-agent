@@ -176,7 +176,10 @@ Always return a full updated JSON with the new message and any changed fields on
  * Maintains conversation history by timestamp, loads or creates conversation for the 'from' number, and uses a system prompt.
  */
 async function cvAgent(req) {
-  const systemPrompt = `You are a CV creator assistant. Maintain a conversation history to help the user build their CV step by step. Always respond with the next question or update needed for the CV, referencing the conversation so far. Only ask what is necessary to move the process forward.\nReturn the updated CV JSON and the assistant's message. Do not provide extra explanations.`;
+  const systemPrompt = `You are a CV creator assistant. Maintain a conversation history to help the user build their CV step by step. 
+  Always respond with the next question or update needed for the CV, referencing the conversation so far. 
+  Only ask what is necessary to move the process forward.
+  Return the updated CV JSON. Do not provide extra explanations as the JSON will be used as a object variable in javascript code.`;
 
   const { from, text } = req.body;
 
@@ -200,10 +203,12 @@ async function cvAgent(req) {
   // Sort messages by timestamp (ascending)
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+
+
   // Build chat history for OpenAI
   const chatHistory = [
-    // { role: 'system', content: systemPrompt },
-    ...conversation.messages.map(msg => ({ role: msg.role, content: msg.content }))
+    { role: 'system', content: systemPrompt },
+    ...conversation.messages.slice(-2).map(msg => ({ role: msg.role, content: msg.content }))
   ];
 
   // Call OpenAI API
