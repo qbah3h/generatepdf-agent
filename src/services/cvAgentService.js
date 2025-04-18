@@ -48,7 +48,7 @@ Only update chatbotMessage and section if the user has provided a valid input. D
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   const inputMessages = [
-    { role: 'system', content: systemPrompt + curriculum },
+    { role: 'system', content: systemPrompt + JSON.stringify(curriculum) },
   ];
   console.log('Input messages:', inputMessages);
 
