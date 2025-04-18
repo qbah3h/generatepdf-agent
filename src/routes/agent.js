@@ -193,6 +193,13 @@ async function cvAgent(req) {
     });
   }
 
+  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
+  curriculum.userMessage = text;
+  
+  if (conversation.messages.length > 0) {
+    curriculum.lastChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
+  }
+
   // Add user message to conversation
   conversation.messages.push({
     role: 'user',
@@ -203,12 +210,9 @@ async function cvAgent(req) {
   // Sort messages by timestamp (ascending)
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-
-
   // Build chat history for OpenAI
   const chatHistory = [
-    { role: 'system', content: systemPrompt },
-    ...conversation.messages.slice(-2).map(msg => ({ role: msg.role, content: msg.content }))
+    { role: 'system', content: systemPrompt + curriculum },
   ];
 
   // Call OpenAI API
@@ -220,11 +224,15 @@ async function cvAgent(req) {
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
-  let cleaned = aiResponseText.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-  }
-  const aiResponse = JSON.parse(cleaned);
+  // let cleaned = aiResponseText.trim();
+  // if (cleaned.startsWith('```')) {
+  //   cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+  // }
+  const aiResponse = JSON.parse(aiResponseText);
+
+  Object.assign(curriculum, aiResponse);
+  await curriculum.save();
+
 
   // Add assistant message to conversation
   conversation.messages.push({
