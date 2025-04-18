@@ -214,6 +214,7 @@ async function cvAgent(req) {
   const chatHistory = [
     { role: 'system', content: systemPrompt + curriculum },
   ];
+  console.log('Chat history:', chatHistory);
 
   // Call OpenAI API
   const response = await openai.chat.completions.create({
