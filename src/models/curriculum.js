@@ -34,7 +34,7 @@ const ProjectSchema = new mongoose.Schema({
 // Section schema with discriminated content
 const SectionSchema = new mongoose.Schema({
   status: { type: String, enum: ['completed', 'working', 'pending'], default: 'pending' },
-  name: { type: String, enum: ['information', 'experiences', 'education', 'projects'], required: true },
+  name: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills'], required: true },
   content: {
     type: [mongoose.Schema.Types.Mixed],
     required: true
@@ -47,7 +47,7 @@ const curriculumSchema = new mongoose.Schema({
   userMessage: { type: String, default: '' },
   prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
-  status: { type: String, default: 'active' },
+  status: { type: String, default: 'active' }, // active, completed
   image: { type: Boolean, default: false },
   section: [SectionSchema],
 }, {
@@ -66,7 +66,6 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
         phone: '.',
         address: '.',
         summary: '.',
-        skills: []
       }]
     },
     {
@@ -94,6 +93,14 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
     {
       status: 'pending',
       name: 'projects',
+      content: [{
+        title: '.',
+        description: '.'
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'skills',
       content: [{
         title: '.',
         description: '.'
