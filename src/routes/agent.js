@@ -150,7 +150,11 @@ Always return a full updated JSON with the new message and any changed fields on
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
-  const aiResponse = JSON.parse(aiResponseText);
+  let cleaned = aiResponseText.trim();
+if (cleaned.startsWith('```')) {
+  cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+}
+const aiResponse = JSON.parse(cleaned);
   // console.log('Parsed AI response:', aiResponse);
 
   Object.assign(curriculum, aiResponse);
