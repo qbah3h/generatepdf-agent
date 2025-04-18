@@ -21,7 +21,8 @@ Always return a full updated JSON with the new message and any changed fields on
 Only update chatbotMessage and section if the user has provided a valid input. Do not update any other field.
 You can ask for more than one field at a time on the same section.
 Use the same language as the userMessage.
-Update each section status accordingly 'completed', 'working', 'pending'`;
+Update each section status accordingly 'completed', 'working', 'pending'
+Update currentSection depending on the current section you are working on`;
 
   const { from, text } = req.body;
 

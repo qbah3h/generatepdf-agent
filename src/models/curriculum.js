@@ -49,6 +49,7 @@ const curriculumSchema = new mongoose.Schema({
   newChatbotMessage: { type: String, default: '' },
   status: { type: String, default: 'active' }, // active, completed
   image: { type: Boolean, default: false },
+  currentSection: { type: String, default: 'information' }, // information, experiences, education, projects, skills
   section: [SectionSchema],
 }, {
   timestamps: true  
