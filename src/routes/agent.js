@@ -111,70 +111,39 @@ router.post(
   }
 );
 
-async function processTextInput(req) {
-  const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
-The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
-Your response must always return the updated JSON, including:
-- A new message in chatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
-- An updated status field:
-Use "active" if the conversation is still in progress.
-Use "ready" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
-Do not include extra explanations or summaries. Return only the updated JSON object as it will be used as a function input.
-Respect the original structure.
-Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
-Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
-Always return a full updated JSON with the new message and any changed fields only.`;
-
-  const { from, text } = req.body;
-
-  // Load curriculum from database or create new
-  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
-
-  curriculum.userMessage = text;
-
-  if (req.file) {
-    curriculum.image = true;
-  }
-
-  const systemMessage = {
-    role: 'system', content: `
-  ${systemPrompt}
-  ${curriculum}
-  ` };
-
-  console.log('System prompt:', systemMessage.content);
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o', // "gpt-3.5-turbo-0125",
-    messages: [systemMessage]
-  });
-
-  const aiResponseText = response.choices[0].message.content;
-  console.log('Raw AI response:', aiResponseText);
-
-  let cleaned = aiResponseText.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-  }
-  const aiResponse = JSON.parse(cleaned);
-  // console.log('Parsed AI response:', aiResponse);
-
-  Object.assign(curriculum, aiResponse);
-  curriculum.lastChatbotMessage = curriculum.chatbotMessage;
-  curriculum.chatbotMessage = '';
-
-  // Update curriculum in database
-  await curriculum.save();
-
-  console.log('AI response:', aiResponse.chatbotMessage);
-
-  return aiResponse.chatbotMessage;
-}
-
 /**
  * Conversation-aware CV agent function
  * Maintains conversation history by timestamp, loads or creates conversation for the 'from' number, and uses a system prompt.
  */
+// Accurate token counting using tiktoken for OpenAI models
+const { encoding_for_model } = require('@dqbd/tiktoken');
+let encoder;
+function getEncoder() {
+  if (!encoder) {
+    encoder = encoding_for_model('gpt-4o');
+  }
+  return encoder;
+}
+function countTokens(text) {
+  if (!text) return 0;
+  const enc = getEncoder();
+  return enc.encode(text).length;
+}
+
+// Helper to call OpenAI and count tokens
+async function callOpenAIWithTokenCount({ model, messages }) {
+  // Count input tokens (all message contents)
+  const inputText = messages.map(m => m.content).join(' ');
+  const inputTokens = countTokens(inputText);
+
+  // Call OpenAI
+  const response = await openai.chat.completions.create({ model, messages });
+  const outputText = response.choices[0].message.content;
+  const outputTokens = countTokens(outputText);
+
+  return { response, inputTokens, outputTokens };
+}
+
 async function cvAgent(req) {
   const systemPrompt = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
 The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
@@ -219,24 +188,29 @@ Always return a full updated JSON with the new message and any changed fields on
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   // Build chat history for OpenAI
-  const chatHistory = [
+  const inputMessage = [
     { role: 'system', content: systemPrompt + curriculum },
   ];
-  console.log('Chat history:', chatHistory);
+  console.log('Input message:', inputMessage);
 
-  // Call OpenAI API
-  const response = await openai.chat.completions.create({
+  // Call OpenAI API and count tokens
+  const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
     model: 'gpt-4o',
-    messages: chatHistory
+    messages: inputMessage
   });
 
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
-  // let cleaned = aiResponseText.trim();
-  // if (cleaned.startsWith('```')) {
-  //   cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-  // }
+  // Save token usage to conversation metadata
+  if (!conversation.metadata) conversation.metadata = {};
+  if (!conversation.metadata.tokenUsage) conversation.metadata.tokenUsage = [];
+  conversation.metadata.tokenUsage.push({
+    timestamp: new Date(),
+    inputTokens,
+    outputTokens
+  });
+
   const aiResponse = JSON.parse(aiResponseText);
 
   Object.assign(curriculum, aiResponse);
