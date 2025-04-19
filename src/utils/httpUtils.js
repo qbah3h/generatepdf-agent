@@ -1,4 +1,7 @@
 const axios = require('axios');
+const FormData = require('form-data');
+const dotenv = require('dotenv');
+dotenv.config();
 
 /**
  * Calls the PDF generation service with the curriculum data
@@ -10,14 +13,19 @@ async function generatePDF(curriculumData) {
     // Format the curriculum data according to the PDF service requirements
     const formattedData = formatCurriculumData(curriculumData);
     
+    // Create FormData instance
+    const formData = new FormData();
+    
+    // Add the curriculum JSON
+    formData.append('curriculumJson', JSON.stringify(formattedData));
+    
     // Call the PDF generation service
     const response = await axios.post(
-      'http://167.114.145.216:8090/api/cv/generate',
-      formattedData,
+      `${process.env.SERVICE_URL}`,
+      formData,
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'multipart/form-data'
         },
         responseType: 'arraybuffer'
       }
