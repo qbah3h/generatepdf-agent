@@ -10,7 +10,20 @@ async function orchestrateProcessing(req, res, next) {
       endpoint,
       timestamp: new Date().toISOString(),
     };
-    req.processedResult = await cvAgent(req);
+    
+    // Get the response from cvAgent which now includes message and pdfData
+    const agentResponse = await cvAgent(req);
+    
+    // Check if PDF was generated (conversation completed)
+    if (agentResponse.status === 'completed' && agentResponse.pdfData) {
+      // Serve the PDF directly
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${req.body.from}_cv.pdf"`); 
+      return res.send(agentResponse.pdfData);
+    }
+    
+    // If no PDF was generated, continue with the normal flow
+    req.processedResult = agentResponse.message;
     next();
   } catch (error) {
     next(error);
