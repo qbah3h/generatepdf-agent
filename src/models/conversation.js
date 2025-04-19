@@ -43,7 +43,7 @@ const conversationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'archived', 'deleted'],
+    enum: ['active', 'archived', 'deleted', 'pdf'],
     default: 'active',
   }
 });
