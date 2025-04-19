@@ -14,7 +14,7 @@ Your response must always return the updated JSON, including:
 - A new message in chatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
 - An updated status field:
 Use "active" if the conversation is still in progress.
-Use "completed" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
+Use "pdf" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
 Do not include extra explanations or summaries. Return only the updated JSON object as it will be used as a function input.
 Respect the original structure.
 Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
@@ -85,8 +85,8 @@ Update currentSection depending on the current section you are working on`;
   await curriculum.save();
 
   let pdfData = null;
-  if (aiResponse.status === 'completed') {
-    conversation.status = 'completed';
+  if (aiResponse.status === 'pdf') {
+    conversation.status = 'pdf';
     
     try {
       // Generate PDF when conversation is completed
