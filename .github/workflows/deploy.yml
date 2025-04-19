@@ -24,10 +24,11 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
+          host: 167.114.145.216
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          port: 22
           script: |
             # Navigate to project directory
             cd ${{ secrets.PROJECT_PATH }}
@@ -39,7 +40,7 @@ jobs:
             npm ci --production
             
             # Check if PM2 process exists and restart it, or start a new one if it doesn't exist
-            if pm2 list | grep -q "generatepdf-agent"; then
+            if pm2 list | grep -q "aiagent"; then
               pm2 reload ecosystem.config.js --env production
             else
               pm2 start ecosystem.config.js --env production
