@@ -7,7 +7,55 @@ An AI agent service that exposes a REST API endpoint for PDF generation.
 1. Install dependencies:
    ```bash
    npm install
+   ```
 
+2. Run the application in development mode:
+   ```bash
+   npm run dev
+   ```
+
+3. Run the application in production mode:
+   ```bash
+   npm start
+   ```
+
+## CI/CD Pipeline Setup
+
+This project uses GitHub Actions for CI/CD to automatically deploy to a VPS server with PM2. Follow these steps to set up the deployment pipeline:
+
+1. On your VPS server, install Node.js, Git, and PM2:
+   ```bash
+   # Update package lists
+   sudo apt update
+   
+   # Install Node.js and npm
+   sudo apt install nodejs npm
+   
+   # Install PM2 globally
+   sudo npm install -g pm2
+   ```
+
+2. Create the following secrets in your GitHub repository (Settings > Secrets and variables > Actions):
+   - `VPS_HOST`: Your VPS server IP address or domain name
+   - `VPS_USERNAME`: SSH username for your VPS
+   - `VPS_SSH_KEY`: Private SSH key for authentication (the content of your private key file)
+   - `VPS_PORT`: SSH port (usually 22)
+   - `PROJECT_PATH`: Absolute path to your project directory on the VPS
+
+3. Set up SSH key-based authentication on your VPS:
+   - Generate an SSH key pair if you don't have one
+   - Add the public key to your VPS's `~/.ssh/authorized_keys` file
+   - Use the private key as the `VPS_SSH_KEY` secret in GitHub
+
+4. Push to the main branch to trigger the deployment:
+   ```bash
+   git push origin main
+   ```
+
+The workflow will:
+- Pull the latest code from the main branch
+- Install dependencies
+- Start or reload the application using PM2
 
 Based on your current codebase and requirements, here are the next steps I recommend:
 
