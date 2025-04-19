@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'aiagent',
-    script: 'index.js',
+    script: 'src/app.js',
     instances: 1,
     autorestart: true,
     watch: false,
