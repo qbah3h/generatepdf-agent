@@ -1,6 +1,8 @@
 const Curriculum = require('../models/curriculum');
 const Conversation = require('../models/conversation');
+const PdfMetadata = require('../models/pdfMetadata');
 const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
+const { generatePDF } = require('../utils/httpUtils');
 
 /**
  * Main CV Agent orchestration logic, separated from route layer.
@@ -82,6 +84,29 @@ Update currentSection depending on the current section you are working on`;
   Object.assign(curriculum, aiResponse);
   await curriculum.save();
 
+  let pdfData = null;
+  if (aiResponse.status === 'completed') {
+    conversation.status = 'completed';
+    
+    try {
+      // Generate PDF when conversation is completed
+      pdfData = await generatePDF(curriculum);
+      
+      // Save PDF metadata
+      await PdfMetadata.create({
+        userId: from,
+        conversationId: conversation._id,
+        filename: `${from}_cv.pdf`,
+        template: 'default',
+        data: curriculum,
+        status: 'generated'
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Continue with the conversation even if PDF generation fails
+    }
+  }
+
   conversation.messages.push({
     role: 'assistant',
     content: aiResponse.newChatbotMessage,
@@ -89,7 +114,12 @@ Update currentSection depending on the current section you are working on`;
   });
   await conversation.save();
 
-  return aiResponse.newChatbotMessage;
+  // Return both the chatbot message and PDF data (if generated)
+  return {
+    message: aiResponse.newChatbotMessage,
+    pdfData: pdfData,
+    status: aiResponse.status
+  };
 }
 
 module.exports = { cvAgent };
