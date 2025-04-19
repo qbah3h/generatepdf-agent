@@ -82,6 +82,11 @@ Update currentSection depending on the current section you are working on`;
   Object.assign(curriculum, aiResponse);
   await curriculum.save();
 
+  if (aiResponse.status === 'completed') {
+    conversation.status = 'completed';
+  }
+  
+
   conversation.messages.push({
     role: 'assistant',
     content: aiResponse.newChatbotMessage,
