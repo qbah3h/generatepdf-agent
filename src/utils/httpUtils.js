@@ -6,9 +6,10 @@ dotenv.config();
 /**
  * Calls the PDF generation service with the curriculum data
  * @param {Object} curriculumData - The curriculum data to generate a PDF from
+ * @param {Buffer} [image] - Optional profile image data
  * @returns {Promise<Buffer>} - The PDF content as a buffer
  */
-async function generatePDF(curriculumData) {
+async function generatePDF(curriculumData, image) {
   try {
     // Format the curriculum data according to the PDF service requirements
     const formattedData = formatCurriculumData(curriculumData);
@@ -18,6 +19,14 @@ async function generatePDF(curriculumData) {
     
     // Add the curriculum JSON
     formData.append('curriculumJson', JSON.stringify(formattedData));
+    
+    // Add the image if provided
+    if (image) {
+      formData.append('profileImage', image, {
+        filename: 'profile.jpg',
+        contentType: 'image/jpeg'
+      });
+    }
     
     // Call the PDF generation service
     const response = await axios.post(

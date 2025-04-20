@@ -3,6 +3,7 @@ const Conversation = require('../models/conversation');
 const PdfMetadata = require('../models/pdfMetadata');
 const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
+const { getImageById } = require('../services/imageService');
 
 /**
  * Main CV Agent orchestration logic, separated from route layer.
@@ -80,8 +81,18 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   let pdfData = null;
   if (aiResponse.status === 'pdf') {    
     try {
+      // Try to get profile image for the user
+      let profileImage = null;
+      try {
+        const imageData = await getImageById(from);
+        profileImage = imageData.data;
+      } catch (imageError) {
+        console.log('No profile image found or error retrieving image:', imageError.message);
+        // Continue without image if not found or error occurs
+      }
+
       // Generate PDF when conversation is completed
-      pdfData = await generatePDF(curriculum);
+      pdfData = await generatePDF(curriculum, profileImage);
       
       // Save PDF metadata
       await PdfMetadata.create({
