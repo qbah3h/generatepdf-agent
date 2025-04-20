@@ -60,7 +60,7 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   console.log('Input messages:', inputMessages);
 
   const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini', //'gpt-4o',
     messages: inputMessages
   });
 
