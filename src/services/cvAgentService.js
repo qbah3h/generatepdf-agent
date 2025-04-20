@@ -67,6 +67,7 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
+  // to clean the response as it conaing no JSON data
   let cleaned = aiResponseText.trim();
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');

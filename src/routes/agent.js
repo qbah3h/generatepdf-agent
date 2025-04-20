@@ -1,11 +1,11 @@
 const express = require('express');
-const multer = require('multer');
 const ipFilter = require('../middleware/ipFilter');
 const { validate, textInputValidation, imageInputValidation } = require('../middleware/validator');
 const orchestrateProcessing = require('../middleware/orchestrateProcessing');
+const { upload } = require('../utils/fileStorage');
+const { saveImage } = require('../services/imageService');
 
 const router = express.Router();
-const upload = multer();
 
 // Apply IP filtering to all routes
 router.use(ipFilter);
@@ -26,7 +26,7 @@ router.post(
 
 // Image processing endpoint
 router.post(
-  '/image',
+  '/image-test',
   // pdfGenerationLimiter,
   upload.single('image'),
   validate(imageInputValidation),
@@ -35,5 +35,26 @@ router.post(
     res.json({ success: true, message: req.processedResult });
   }
 );
+
+// New endpoint for image uploads
+router.post('/image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image uploaded' });
+    }
+    
+    const { from } = req.body;
+    const savedImage = await saveImage(req.file, from);
+    
+    res.json({
+      success: true,
+      imageId: savedImage._id,
+      filename: savedImage.filename
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload image' });
+  }
+});
 
 module.exports = router;
