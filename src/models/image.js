@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const imageSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
+  from: { type: String, required: true },
   filename: { type: String, required: true },
   originalName: { type: String, required: true },
   mimetype: { type: String, required: true },
