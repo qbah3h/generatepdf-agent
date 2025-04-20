@@ -67,15 +67,6 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
-  if (!conversation.metadata) conversation.metadata = {};
-  if (!conversation.metadata.tokenUsage) conversation.metadata.tokenUsage = [];
-  conversation.metadata.tokenUsage.push({
-    timestamp: new Date(),
-    inputTokens,
-    outputTokens
-  });
-  conversation.markModified('metadata');
-
   let cleaned = aiResponseText.trim();
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
@@ -86,9 +77,7 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   await curriculum.save();
 
   let pdfData = null;
-  if (aiResponse.status === 'pdf') {
-    conversation.status = 'pdf';
-    
+  if (aiResponse.status === 'pdf') {    
     try {
       // Generate PDF when conversation is completed
       pdfData = await generatePDF(curriculum);
@@ -108,6 +97,8 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
     }
   }
 
+  //review why it is not working
+  // create similar to set the status to PDF
   if (aiResponse.status === 'completed') {
     conversation.status = 'completed';
   }

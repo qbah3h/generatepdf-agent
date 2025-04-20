@@ -26,6 +26,7 @@ async function callOpenAIWithTokenCount({ model, messages }) {
   });
 
   // Output tokens (estimate or extract from response if available)
+  console.log('------------------OpenAI FULL response:------------------', response);
   const outputTokens = countTokens(response.choices[0].message.content);
   return { response, inputTokens, outputTokens };
 }
