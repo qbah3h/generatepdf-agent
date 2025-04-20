@@ -115,6 +115,11 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
     conversation.status = 'completed';
   }
 
+  // Ensure we have content for the assistant message
+if (!aiResponse.newChatbotMessage) {
+    aiResponse.newChatbotMessage = "I'm processing your request. Please wait a moment."; // Default message if none provided
+  }
+
   conversation.messages.push({
     role: 'assistant',
     content: aiResponse.newChatbotMessage,
