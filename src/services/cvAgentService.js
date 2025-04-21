@@ -101,20 +101,23 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
 
       pdfData = await generatePDF(curriculum, profileImage);
 
+      // send pdf to whatsapp
+      // from Number, to number
+
       // Delete the image from the filesystem
       if(profileImage) {
         await deleteImage(from);
       }
       
       // Save PDF metadata
-      await PdfMetadata.create({
-        userId: from,
-        conversationId: conversation._id,
-        filename: `${from}_cv.pdf`,
-        template: 'default',
-        data: curriculum,
-        status: 'generated'
-      });
+      // await PdfMetadata.create({
+      //   userId: from,
+      //   conversationId: conversation._id,
+      //   filename: `${from}_cv.pdf`,
+      //   template: 'default',
+      //   data: curriculum,
+      //   status: 'generated'
+      // });
     } catch (error) {
       console.error('Error generating PDF:', error);
       // Continue with the conversation even if PDF generation fails

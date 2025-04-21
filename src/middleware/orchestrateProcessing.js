@@ -17,8 +17,8 @@ async function orchestrateProcessing(req, res, next) {
     // Check if PDF was generated (conversation completed)
     if (agentResponse.pdfData) {
       // Serve the PDF directly
-      // res.setHeader('Content-Type', 'application/pdf');
-      // res.setHeader('Content-Disposition', `attachment; filename="${req.body.from}_cv.pdf"`); 
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${req.body.from}_cv.pdf"`); 
       // return res.send(agentResponse.pdfData);
     }
     
