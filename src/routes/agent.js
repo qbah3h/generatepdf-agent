@@ -14,25 +14,13 @@ router.use(ipFilter);
 router.post(
   '/text',
   // pdfGenerationLimiter,
-  validate(textInputValidation),
+  //validate(textInputValidation),
   orchestrateProcessing,
   (req, res) => {
     res.json({
       success: true,
       message: req.processedResult
     });
-  }
-);
-
-// Image processing endpoint
-router.post(
-  '/image-test',
-  // pdfGenerationLimiter,
-  upload.single('image'),
-  validate(imageInputValidation),
-  orchestrateProcessing,
-  (req, res) => {
-    res.json({ success: true, message: req.processedResult });
   }
 );
 
