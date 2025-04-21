@@ -28,7 +28,7 @@ Update each section status accordingly 'completed', 'working', 'pending'
 Update currentSection depending on the current section you are working on.
 If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
 
-console.log(`cvAgent --- Response ${JSON.stringify(req.body)}`)
+console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
   let conversation = await Conversation.findOne({ userId: from, status: 'active' });
@@ -97,6 +97,8 @@ console.log(`cvAgent --- Response ${JSON.stringify(req.body)}`)
   if (aiResponse.status === 'pdf') {    
     try {
       // Generate PDF when conversation is completed
+      console.log('Generating PDF...');
+
       pdfData = await generatePDF(curriculum, profileImage);
 
       // Delete the image from the filesystem
