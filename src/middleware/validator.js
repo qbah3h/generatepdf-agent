@@ -19,7 +19,7 @@ const validate = (validations) => {
 // Validation schemas
 const textInputValidation = [
   body('from').notEmpty().withMessage('User ID is required'),
-  body('text').notEmpty().withMessage('Text input is required')
+  body('userMessage').notEmpty().withMessage('Text input is required')
 ];
 
 const imageInputValidation = [
