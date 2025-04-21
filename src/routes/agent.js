@@ -39,7 +39,7 @@ router.post(
 // New endpoint for image uploads
 router.post('/image',
   upload.single('image'),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image uploaded' });
