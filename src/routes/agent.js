@@ -37,24 +37,26 @@ router.post(
 );
 
 // New endpoint for image uploads
-router.post('/image', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image uploaded' });
+router.post('/image',
+  upload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image uploaded' });
+      }
+
+      const { from } = req.body;
+      const savedImage = await saveImage(req.file, from);
+
+      next();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      res.status(500).json({ success: false, message: 'Failed to upload image' });
     }
-    
-    const { from } = req.body;
-    const savedImage = await saveImage(req.file, from);
-    
-    res.json({
-      success: true,
-      imageId: savedImage._id,
-      filename: savedImage.filename
-    });
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload image' });
-  }
-});
+  },
+  orchestrateProcessing,
+  (req, res) => {
+    res.json({ success: true, message: req.processedResult });
+  });
 
 module.exports = router;

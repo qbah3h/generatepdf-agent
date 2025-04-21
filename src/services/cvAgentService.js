@@ -28,7 +28,7 @@ Update each section status accordingly 'completed', 'working', 'pending'
 Update currentSection depending on the current section you are working on.
 If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
 
-  const { from, text } = req.body;
+  const { from, userMessage } = req.body;
 
   let conversation = await Conversation.findOne({ userId: from, status: 'active' });
   if (!conversation) {
@@ -40,7 +40,7 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   }
 
   let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
-  curriculum.userMessage = text;
+  curriculum.userMessage = userMessage;
 
   if (conversation.messages.length > 0) {
     curriculum.prevChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
@@ -50,11 +50,25 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
 
   conversation.messages.push({
     role: 'user',
-    content: text,
+    content: userMessage,
     timestamp: new Date()
   });
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+  // Try to get profile image for the user
+  let profileImage = null;
+  try {
+    const imageData = await getImageById(from);
+    profileImage = imageData.data;
+  } catch (imageError) {
+    console.log('No profile image found or error retrieving image:', imageError.message);
+    // Continue without image if not found or error occurs
+  }
+
+  if(profileImage) {
+    curriculum.image = true;
+  }
+  
   const inputMessages = [
     { role: 'system', content: systemPrompt + "Here is the exact CV schema you must follow: " + JSON.stringify(curriculum) + " Only these fields may be present; do NOT add anything else." },
   ];
@@ -81,16 +95,6 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   let pdfData = null;
   if (aiResponse.status === 'pdf') {    
     try {
-      // Try to get profile image for the user
-      let profileImage = null;
-      try {
-        const imageData = await getImageById(from);
-        profileImage = imageData.data;
-      } catch (imageError) {
-        console.log('No profile image found or error retrieving image:', imageError.message);
-        // Continue without image if not found or error occurs
-      }
-
       // Generate PDF when conversation is completed
       pdfData = await generatePDF(curriculum, profileImage);
       
@@ -113,11 +117,6 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
   // create similar to set the status to PDF
   if (aiResponse.status === 'completed') {
     conversation.status = 'completed';
-  }
-
-  // Ensure we have content for the assistant message
-if (!aiResponse.newChatbotMessage) {
-    aiResponse.newChatbotMessage = "I'm processing your request. Please wait a moment."; // Default message if none provided
   }
 
   conversation.messages.push({
