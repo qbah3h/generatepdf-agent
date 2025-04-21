@@ -40,6 +40,7 @@ router.post(
 router.post('/image',
   upload.single('image'),
   async (req, res) => {
+    console.log(`image endpoint --- Response ${JSON.stringify(req)}`)
     try {
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image uploaded' });
