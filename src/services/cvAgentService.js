@@ -3,7 +3,7 @@ const Conversation = require('../models/conversation');
 const PdfMetadata = require('../models/pdfMetadata');
 const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
-const { getImageById } = require('../services/imageService');
+const { getImageById, deleteImage } = require('../services/imageService');
 
 /**
  * Main CV Agent orchestration logic, separated from route layer.
@@ -97,6 +97,11 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
     try {
       // Generate PDF when conversation is completed
       pdfData = await generatePDF(curriculum, profileImage);
+
+      // Delete the image from the filesystem
+      if(profileImage) {
+        await deleteImage(from);
+      }
       
       // Save PDF metadata
       await PdfMetadata.create({
