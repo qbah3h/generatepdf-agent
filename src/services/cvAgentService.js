@@ -28,6 +28,7 @@ Update each section status accordingly 'completed', 'working', 'pending'
 Update currentSection depending on the current section you are working on.
 If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
 
+console.log(`cvAgent --- Response ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
   let conversation = await Conversation.findOne({ userId: from, status: 'active' });
