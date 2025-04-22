@@ -33,8 +33,8 @@ router.post('/image',
         return res.status(400).json({ success: false, message: 'No image uploaded' });
       }
 
-      const { from } = req.body;
-      const savedImage = await saveImage(req.file, from);
+      const { fromNumber } = req.body;
+      const savedImage = await saveImage(req.file, fromNumber);
 
       next();
     } catch (error) {

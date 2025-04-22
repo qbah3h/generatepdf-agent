@@ -29,18 +29,18 @@ Update currentSection depending on the current section you are working on.
 If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
 
 console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
-  const { from, userMessage } = req.body;
+  const { userMessage, fromNumber, toNumberId, caption } = req.body;
 
-  let conversation = await Conversation.findOne({ userId: from, status: 'active' });
+  let conversation = await Conversation.findOne({ userId: fromNumber, status: 'active' });
   if (!conversation) {
     conversation = await Conversation.create({
-      userId: from,
+      userId: fromNumber,
       messages: [],
       status: 'active'
     });
   }
 
-  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
+  let curriculum = await Curriculum.findOne({ status: 'active', from: fromNumber }) || await Curriculum.createWithDefaultSections(fromNumber);
   curriculum.userMessage = userMessage;
 
   if (conversation.messages.length > 0) {
@@ -59,7 +59,7 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   // Try to get profile image for the user
   let profileImage = null;
   try {
-    const imageData = await getImageById(from);
+    const imageData = await getImageById(fromNumber);
     profileImage = imageData.data;
   } catch (imageError) {
     console.log('No profile image found or error retrieving image:', imageError.message);
@@ -138,11 +138,7 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   await conversation.save();
 
   // Return both the chatbot message and PDF data (if generated)
-  return {
-    message: aiResponse.newChatbotMessage,
-    pdfData: pdfData,
-    status: aiResponse.status
-  };
+  return aiResponse.newChatbotMessage;
 }
 
 module.exports = { cvAgent };
