@@ -87,6 +87,34 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
     messages: inputMessages
   });
 
+  // Store token counts in conversation metadata
+  if (!conversation.metadata) {
+    conversation.metadata = new Map();
+  }
+  
+  // Initialize token counters if they don't exist
+  if (!conversation.metadata.get('totalInputTokens')) {
+    conversation.metadata.set('totalInputTokens', 0);
+  }
+  if (!conversation.metadata.get('totalOutputTokens')) {
+    conversation.metadata.set('totalOutputTokens', 0);
+  }
+  
+  // Update token counts
+  conversation.metadata.set('totalInputTokens', 
+    parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
+  conversation.metadata.set('totalOutputTokens', 
+    parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
+  
+  // Store token counts for this specific interaction
+  const interactionIndex = Math.floor(conversation.messages.length / 2);
+  conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
+  conversation.metadata.set(`interaction_${interactionIndex}_outputTokens`, outputTokens);
+
+  // Log token usage for monitoring
+  console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
+  console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
+
   const aiResponseText = response.choices[0].message.content;
   console.log('Raw AI response:', aiResponseText);
 
