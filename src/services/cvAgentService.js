@@ -1,6 +1,6 @@
 const Curriculum = require('../models/curriculum');
 const Conversation = require('../models/conversation');
-const PdfMetadata = require('../models/pdfMetadata');
+// const PdfMetadata = require('../models/pdfMetadata');
 const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
 const { getImageById, deleteImage } = require('../services/imageService');
