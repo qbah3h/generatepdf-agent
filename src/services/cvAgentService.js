@@ -5,6 +5,41 @@ const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
 const { getImageById, deleteImage } = require('../services/imageService');
 
+const systemPromptOriginal = `You are a CV creator assistant. Each time you are prompted with a JSON structure, your task is to complete it.
+The JSON will include the changes made during the chat, along with the latest input from the user. You must update the CV sections one at a time, based on both lastChatbotMessage and lastUserMessage.
+Your response must always return the updated JSON, including:
+- A new message in chatbotMessage — this should be short, assertive, and ask only the necessary question to move the conversation forward.
+- An updated status field:
+Use "active" if the conversation is still in progress.
+Use "pdf" once all required fields are complete and the user has confirmed they’re ready to generate the PDF.
+Do not include extra explanations or summaries. Return only the updated JSON object as it will be used as a function input.
+Respect the original structure.
+Update only one section at a time. For example, ask for the full name, then update the information section with it. The next iteration will be based on the updated JSON.
+Use lastChatbotMessage + userMessage as your state of the conversation history. It should drive what gets asked or updated next.
+Always return a full updated JSON with the new message and any changed fields only.
+Only update chatbotMessage and section if the user has provided a valid input. Do not update any other field.
+You can ask for more than one field at a time on the same section.
+Use the same language as the userMessage.
+Update each section status accordingly 'completed', 'working', 'pending'
+Update currentSection depending on the current section you are working on.
+If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
+
+const sp = `Eres un asistente para la creacion de curriculums. Tendras la habilidad de conocer el modelo de datos en formato JSON y tu responsabilidad es completarlo.
+En el JSON se incluyen los campos del modelo, algunos con informacion y otros sin informacion.
+Tu trabajo es completar la informacion que falte y devolver el JSON con la informacion existente mas la nueva informacion que logres identificar ubicandola en el campo correspondiente.
+La descripcion de los campos, a modo de guia, es la siguiente:
+from: user creating the curriculum. //to update by the user
+language: language of the user. You must identify this in the first intraction and set it to 'es' or 'en'. //to update by you
+userMessage: this is the last message sent by the user to the chatbot, in response to prevChatbotMessage. //to update by the user
+prevChatbotMessage: this is the last message sent by the chatbot to the user. //to update by the system
+newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
+status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
+image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it. //to update by the system
+currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
+section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. This contains a 'status' field and you have to update as well. 'completed', 'working', 'pending' //to update by you
+You should always return only the updated JSON object, as it will be passed as a parameter to a function.
+`;
+
 /**
  * Main CV Agent orchestration logic, separated from route layer.
  */
@@ -75,10 +110,10 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
     curriculum.image = true;
   }
   
-  const promptWithObject = `Here is the exact CV schema you must follow: ${JSON.stringify(curriculum)}`;
+  const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
 
   const inputMessages = [
-    { role: 'system', content: systemPrompt + promptWithObject },
+    { role: 'system', content: sp + promptWithObject },
   ];
   console.log('Input messages:', inputMessages);
 
