@@ -34,9 +34,9 @@ userMessage: this is the last message sent by the user to the chatbot, in respon
 prevChatbotMessage: this is the last message sent by the chatbot to the user. //to update by the system
 newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
 status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
-image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it. //to update by the system
+image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it, if it is true, and all the other sections are completed, ask the user if they want to generate the PDF. //to update by the system
 currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
-section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. This contains a 'status' field and you have to update as well. 'completed', 'working', 'pending' //to update by you
+section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. In each section confirm with the user if something else should be added before jumping into the next one. This contains a 'status' field and you have to update as well. When the section is completed jump into another section. 'completed', 'working', 'pending' //to update by you
 You should always return only the updated JSON object, as it will be passed as a parameter to a function.
 `;
 
