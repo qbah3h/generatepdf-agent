@@ -22,7 +22,7 @@ async function generatePDF(curriculumData, image) {
     
     // Add the image if provided
     if (image) {
-      formData.append('profileImage', image, {
+      formData.append('image', image, {
         filename: 'profile.jpg',
         contentType: 'image/jpeg'
       });

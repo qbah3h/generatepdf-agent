@@ -30,8 +30,6 @@ Tu trabajo es completar la informacion que falte y devolver el JSON con la infor
 La descripcion de los campos, a modo de guia, es la siguiente:
 from: user creating the curriculum. //to update by the user
 language: language of the user. You must identify this in the first intraction and set it to 'es' or 'en'. //to update by you
-userMessage: this is the last message sent by the user to the chatbot, in response to prevChatbotMessage. //to update by the user
-prevChatbotMessage: this is the last message sent by the chatbot to the user. //to update by the system
 newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
 status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
 image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it, if it is true, and all the other sections are completed, ask the user if they want to generate the PDF. //to update by the system
@@ -111,9 +109,10 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   }
   
   const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
-
+  const conversationHistory = `This is the coversation history: ${JSON.stringify(conversation.messages)}`;
+  
   const inputMessages = [
-    { role: 'system', content: sp + promptWithObject },
+    { role: 'system', content: sp + promptWithObject + conversationHistory},
   ];
   console.log('Input messages:', inputMessages);
 
