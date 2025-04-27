@@ -72,7 +72,7 @@ function formatCurriculumData(curriculum) {
   
   // Extract skills section
   const skillsSection = curriculum.section.find(s => s.name === 'skills');
-  const skills = information.skills || [];
+  const skills = skillsSection ? skillsSection.content : [];
   
   // Format the data according to the PDF service requirements
   return {
