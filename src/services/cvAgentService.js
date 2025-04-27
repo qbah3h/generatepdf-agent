@@ -27,6 +27,7 @@ If at the begining of the prompt of the user, you receive a "sudo" keyword, you 
 const sp = `Eres un asistente para la creacion de curriculums. Tendras la habilidad de conocer el modelo de datos en formato JSON y tu responsabilidad es completarlo.
 En el JSON se incluyen los campos del modelo, algunos con informacion y otros sin informacion.
 Tu trabajo es completar la informacion que falte y devolver el JSON con la informacion existente mas la nueva informacion que logres identificar ubicandola en el campo correspondiente.
+Si recien se inicia la conversacion, presentate como un asistente virtual con inteligencia artificial para la ayuda de creacion de curriculums.
 La descripcion de los campos, a modo de guia, es la siguiente:
 from: user creating the curriculum. //to update by the user
 language: language of the user. You must identify this in the first intraction and set it to 'es' or 'en'. //to update by you
