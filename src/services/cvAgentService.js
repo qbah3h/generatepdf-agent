@@ -217,7 +217,7 @@ async function cvAgent(req) {
   Object.assign(curriculum, aiResponse);
 
   let pdfData = null;
-  console.log('Curriculum after AI response:', curriculum.status);
+  console.log('Curriculum after AI response:', JSON.stringify(curriculum));
   if (curriculum.status === 'pdf') {
 
     conversation.status = 'pdf';
