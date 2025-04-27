@@ -24,28 +24,7 @@ Update each section status accordingly 'completed', 'working', 'pending'
 Update currentSection depending on the current section you are working on.
 If at the begining of the prompt of the user, you receive a "sudo" keyword, you should perform the requested as the developers are making some kind of test`;
 
-const sp = `Eres un asistente para la creacion de curriculums. Tendras la habilidad de conocer el modelo de datos en formato JSON y tu responsabilidad es completarlo.
-En el JSON se incluyen los campos del modelo, algunos con informacion y otros sin informacion.
-Tu trabajo es completar la informacion que falte y devolver el JSON con la informacion existente mas la nueva informacion que logres identificar ubicandola en el campo correspondiente.
-Si recien se inicia la conversacion, presentate como un asistente virtual con inteligencia artificial para la ayuda de creacion de curriculums.
-Update to status 'pdf' when the user acknowledges that they have completed the curriculum. If it is already in 'pdf', change it to 'active' and check if the user whould like a different style, if no style provided use the default style.
-La descripcion de los campos, a modo de guia, es la siguiente:
-from: user creating the curriculum. //to update by the user
-language: language of the user. You must identify this in the first interaction and set it to 'es' or 'en'. //to update by you
-newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
-status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
-style: this indicates the style of the PDF. It can be 'modern', 'plain' or 'traditional'. //to update by you
-image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it, if it is true, and all the other sections are completed, ask the user if they want to generate the PDF and update the status to 'pdf' only when the user confirms they want to generate the pdf. //to update by the system
-currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
-section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. In each section confirm with the user if something else should be added before jumping into the next one. This contains a 'status' field and you have to update as well. When the section is completed jump into another section. 'completed', 'working', 'pending' //to update by you
-You should always return only the updated JSON object, as it will be passed as a parameter to a function.
-Keep the conversation in the same language as identified from the first user interaction and saved in the language field`;
-
-/**
- * Main CV Agent orchestration logic, separated from route layer.
- */
-async function cvAgent(req) {
-  const systemPrompt = `You are a CV creator assistant. You receive a JSON structure to update based on the latest user interaction.
+const systemPrompt = `You are a CV creator assistant. You receive a JSON structure to update based on the latest user interaction.
 
   Your task:
   1. Use ONLY the lastUserMessage and lastChatbotMessage to determine what to ask or fill.
@@ -68,7 +47,80 @@ async function cvAgent(req) {
   
   NEVER fill a field unless the user explicitly gives that value. DO NOT infer or guess.`;
 
+const sp = `Eres un asistente para la creacion de curriculums. Tendras la habilidad de conocer el modelo de datos en formato JSON y tu responsabilidad es completarlo.
+En el JSON se incluyen los campos del modelo, algunos con informacion y otros sin informacion.
+Tu trabajo es completar la informacion que falte y devolver el JSON con la informacion existente mas la nueva informacion que logres identificar ubicandola en el campo correspondiente.
+Si recien se inicia la conversacion, presentate como un asistente virtual con inteligencia artificial para la ayuda de creacion de curriculums.
+Update to status 'pdf' when the user acknowledges that they have completed the curriculum. If it is already in 'pdf', change it to 'active' and check if the user whould like a different style, if no style provided use the default style.
+La descripcion de los campos, a modo de guia, es la siguiente:
+from: user creating the curriculum. //to update by the user
+language: language of the user. You must identify this in the first interaction and set it to 'es' or 'en'. Based on that you will keep all the information in that same language, like if some of the user message is in English, you will translate it to the same language, unless technical words that can be in any language. //to update by you
+newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
+status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum, confirmed they want to generate the PDF and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
+style: this indicates the style of the PDF. It can be 'modern', 'plain' or 'traditional'. //to update by you
+image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it, if it is true, and all the other sections are completed, ask the user if they want to generate the PDF and update the status to 'pdf' only when the user confirms they want to generate the pdf. //to update by the system
+currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
+section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. In each section confirm with the user if something else should be added before jumping into the next one. This contains a 'status' field and you have to update as well. When the section is completed jump into another section. 'completed', 'working', 'pending' //to update by you
+You should always return only the updated JSON object, as it will be passed as a parameter to a function.
+Keep the conversation in the same language as identified from the first user interaction and saved in the language field`;
 
+const promptAiFixed = `
+You are an assistant for creating résumés (CVs).
+You will have access to a data model in JSON format, and your responsibility is to complete it.
+
+In the JSON, fields of the model are included — some with information, and others without.
+Your job is to fill in the missing information and return the updated JSON, keeping both the existing and the new information placed into the appropriate fields.
+
+At the beginning of the conversation:
+- Introduce yourself as a virtual assistant powered by artificial intelligence for helping create résumés.
+
+Handling the status:
+- If the user confirms they have completed their curriculum, update the status to 'pdf'.
+- If, based on context, the status was set to 'pdf', then change it to 'active' and ask the user if they would like a different style.
+- If the status is already 'completed', change it to 'active' and ask the user if they would like a different style.
+- If no style is provided, use the default style.
+
+Description of JSON Fields (as a guide):
+
+- from: user creating the curriculum. //to be updated by the user
+- language: user's language.
+  - You must detect this in the first interaction and set it to 'es' (Spanish) or 'en' (English).
+  - After detecting the language, keep all further information in that language.
+  - If some user messages mix languages, translate into the identified language, except for technical terms (which may stay in English).
+- newChatbotMessage: you must create a new prompt/message suggesting to the user what information to enter next. This field's content is what will be returned to the user. //to be updated by you
+- status: indicates the overall status of the résumé.
+  - 'active': still working on it.
+  - 'pdf': ready to generate the PDF (user confirmed).
+  - 'completed': PDF has been generated.
+//to be updated by you
+- style: indicates the desired style of the PDF.
+  - Options: 'modern', 'plain', or 'traditional'.
+//to be updated by you
+- image: indicates if the user has uploaded a profile image.
+  - If false when all sections are complete, ask the user to upload one.
+  - If true and all sections are complete, ask the user if they want to generate the PDF.
+  - Only update the status to 'pdf' after the user confirms they want to generate the PDF.
+//to be updated by the system
+- currentSection: the current section being worked on.
+  - Use this to track where you are.
+//to be updated by you
+- section: array of objects containing curriculum information.
+  - Update this array based on user input (userMessage).
+  - Each section has a status field ('completed', 'working', 'pending'), which you must update.
+  - After completing a section, confirm with the user if anything else should be added before moving to the next.
+  - Once a section is confirmed as complete, move on to another section.
+//to be updated by you
+
+Important rules:
+- Always return only the updated JSON object — it will be passed to a function.
+- Keep the entire conversation in the same language detected from the first user interaction (language field).
+`;
+
+
+/**
+ * Main CV Agent orchestration logic, separated from route layer.
+ */
+async function cvAgent(req) {
   console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
@@ -115,7 +167,7 @@ async function cvAgent(req) {
   const conversationHistory = `This is the coversation history: ${JSON.stringify(conversation.messages)}`;
 
   const inputMessages = [
-    { role: 'system', content: sp + promptWithObject + conversationHistory },
+    { role: 'system', content: promptAiFixed + promptWithObject + conversationHistory },
   ];
   console.log('Input messages:', inputMessages);
 
@@ -163,7 +215,6 @@ async function cvAgent(req) {
 
   const aiResponse = JSON.parse(cleaned);
   Object.assign(curriculum, aiResponse);
-  await curriculum.save();
 
   let pdfData = null;
   if (aiResponse.status === 'pdf') {
@@ -174,7 +225,8 @@ async function cvAgent(req) {
       console.log('Generating PDF...', JSON.stringify(curriculum));
 
       pdfData = await generatePDF(curriculum, profileImage);
-
+      curriculum.status = 'completed';
+      await curriculum.save();
       // Delete the image from the filesystem
       // if (profileImage) {
       //   await deleteImage(from);
@@ -187,22 +239,22 @@ async function cvAgent(req) {
   }
 
   // create similar to set the status to PDF
-  if (aiResponse.status === 'completed') {
+  if (curriculum.status === 'completed') {
     conversation.status = 'archived';
   }
 
   conversation.messages.push({
     role: 'assistant',
-    content: aiResponse.newChatbotMessage,
+    content: curriculum.newChatbotMessage,
     timestamp: new Date()
   });
   await conversation.save();
 
   // Return both the chatbot message and PDF data (if generated)
   return {
-    message: aiResponse.newChatbotMessage,
+    message: curriculum.newChatbotMessage,
     pdfData: pdfData,
-    status: aiResponse.status
+    status: curriculum.status
   };
 }
 
