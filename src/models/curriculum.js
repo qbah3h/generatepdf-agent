@@ -45,8 +45,8 @@ const SectionSchema = new mongoose.Schema({
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
   language: {type: String, enum: ['es', 'en'], default: 'es'},
-  userMessage: { type: String, default: '' },
-  prevChatbotMessage: { type: String, default: '' },
+  // userMessage: { type: String, default: '' },
+  // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
   status: { type: String, default: 'active' }, // active, completed, pdf
   image: { type: Boolean, default: false },

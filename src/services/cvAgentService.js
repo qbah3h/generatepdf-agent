@@ -69,7 +69,7 @@ async function cvAgent(req) {
 console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
-  let conversation = await Conversation.findOne({ userId: from, status: 'active' });
+  let conversation = await Conversation.findOne({ userId: from });
   if (!conversation) {
     conversation = await Conversation.create({
       userId: from,
@@ -78,12 +78,12 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
     });
   }
 
-  let curriculum = await Curriculum.findOne({ status: 'active', from }) || await Curriculum.createWithDefaultSections(from);
-  curriculum.userMessage = userMessage;
+  let curriculum = await Curriculum.findOne({ userId: from }) || await Curriculum.createWithDefaultSections(from);
+  // curriculum.userMessage = userMessage;
 
-  if (conversation.messages.length > 0) {
-    curriculum.prevChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
-  }
+  // if (conversation.messages.length > 0) {
+  //   curriculum.prevChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
+  // }
 
   curriculum.newChatbotMessage = '';
 
@@ -163,37 +163,26 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   await curriculum.save();
 
   let pdfData = null;
-  if (aiResponse.status === 'pdf') {    
+  if (aiResponse.status === 'pdf') {   
+    
+    conversation.status = 'pdf';
     try {
       // Generate PDF when conversation is completed
       console.log('Generating PDF...');
 
       pdfData = await generatePDF(curriculum, profileImage);
 
-      // send pdf to whatsapp
-      // from Number, to number
-
       // Delete the image from the filesystem
       if(profileImage) {
         await deleteImage(from);
       }
-      
-      // Save PDF metadata
-      // await PdfMetadata.create({
-      //   userId: from,
-      //   conversationId: conversation._id,
-      //   filename: `${from}_cv.pdf`,
-      //   template: 'default',
-      //   data: curriculum,
-      //   status: 'generated'
-      // });
+
     } catch (error) {
       console.error('Error generating PDF:', error);
       // Continue with the conversation even if PDF generation fails
     }
   }
 
-  //review why it is not working
   // create similar to set the status to PDF
   if (aiResponse.status === 'completed') {
     conversation.status = 'archived';
