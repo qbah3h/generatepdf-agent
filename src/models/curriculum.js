@@ -60,7 +60,7 @@ const SectionSchema = new mongoose.Schema({
 // Curriculum schema
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  language: {type: String, enum: ['es', 'en'], default: ''},
+  language: {type: String, default: ''},
   // userMessage: { type: String, default: '' },
   // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
