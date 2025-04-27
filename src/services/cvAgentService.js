@@ -28,12 +28,12 @@ const sp = `Eres un asistente para la creacion de curriculums. Tendras la habili
 En el JSON se incluyen los campos del modelo, algunos con informacion y otros sin informacion.
 Tu trabajo es completar la informacion que falte y devolver el JSON con la informacion existente mas la nueva informacion que logres identificar ubicandola en el campo correspondiente.
 Si recien se inicia la conversacion, presentate como un asistente virtual con inteligencia artificial para la ayuda de creacion de curriculums.
+Update to status 'pdf' when the user acknowledges that they have completed the curriculum. If it is already in 'pdf', check if the user whould like a different style, and keep the status as 'pdf'.
 La descripcion de los campos, a modo de guia, es la siguiente:
 from: user creating the curriculum. //to update by the user
 language: language of the user. You must identify this in the first intraction and set it to 'es' or 'en'. //to update by you
 newChatbotMessage: you must to create a new message for the user to know what information to enter next. The content of this field will be returned to the user. //to update by you
 status: this indicates the status of the information in the JSON. It can be 'active' when the user is still working on the curriculum, 'pdf' when the user has completed the curriculum and is ready to generate the PDF, or 'completed' when the user has generated the PDF. //to update by you
-Update to status 'pdf' when the user acknowledges that they have completed the curriculum. If it is already in 'pdf', check if the user whould like a different style, and keep the status as 'pdf'.
 style: this indicates the style of the PDF. It can be 'modern', 'plain' or 'traditional'. //to update by you
 image: this indicates if the user already uploaded a profile image. In case this is false when all sections are completed, you should ask for it, if it is true, and all the other sections are completed, ask the user if they want to generate the PDF. //to update by the system
 currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
@@ -67,9 +67,9 @@ async function cvAgent(req) {
   Be consistent with the language used by the user.
   
   NEVER fill a field unless the user explicitly gives that value. DO NOT infer or guess.`;
-  
 
-console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
+
+  console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
   let conversation = await Conversation.findOne({ userId: from });
@@ -107,15 +107,15 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
     // Continue without image if not found or error occurs
   }
 
-  if(profileImage) {
+  if (profileImage) {
     curriculum.image = true;
   }
-  
+
   const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
   const conversationHistory = `This is the coversation history: ${JSON.stringify(conversation.messages)}`;
-  
+
   const inputMessages = [
-    { role: 'system', content: sp + promptWithObject + conversationHistory},
+    { role: 'system', content: sp + promptWithObject + conversationHistory },
   ];
   console.log('Input messages:', inputMessages);
 
@@ -128,7 +128,7 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   if (!conversation.metadata) {
     conversation.metadata = new Map();
   }
-  
+
   // Initialize token counters if they don't exist
   if (!conversation.metadata.get('totalInputTokens')) {
     conversation.metadata.set('totalInputTokens', 0);
@@ -136,13 +136,13 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   if (!conversation.metadata.get('totalOutputTokens')) {
     conversation.metadata.set('totalOutputTokens', 0);
   }
-  
+
   // Update token counts
-  conversation.metadata.set('totalInputTokens', 
+  conversation.metadata.set('totalInputTokens',
     parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
-  conversation.metadata.set('totalOutputTokens', 
+  conversation.metadata.set('totalOutputTokens',
     parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
-  
+
   // Store token counts for this specific interaction
   const interactionIndex = Math.floor(conversation.messages.length / 2);
   conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
@@ -166,8 +166,8 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
   await curriculum.save();
 
   let pdfData = null;
-  if (aiResponse.status === 'pdf') {   
-    
+  if (aiResponse.status === 'pdf') {
+
     conversation.status = 'pdf';
     try {
       // Generate PDF when conversation is completed
@@ -176,9 +176,9 @@ console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.bod
       pdfData = await generatePDF(curriculum, profileImage);
 
       // Delete the image from the filesystem
-      if(profileImage) {
-        await deleteImage(from);
-      }
+      // if (profileImage) {
+      //   await deleteImage(from);
+      // }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
