@@ -81,7 +81,7 @@ async function cvAgent(req) {
     });
   }
 
-  let curriculum = await Curriculum.findOne({ userId: from }) || await Curriculum.createWithDefaultSections(from);
+  let curriculum = await Curriculum.findOne({ from }) || await Curriculum.createWithDefaultSections(from);
   // curriculum.userMessage = userMessage;
 
   // if (conversation.messages.length > 0) {
