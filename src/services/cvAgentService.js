@@ -217,7 +217,7 @@ async function cvAgent(req) {
   Object.assign(curriculum, aiResponse);
 
   let pdfData = null;
-  if (aiResponse.status === 'pdf') {
+  if (curriculum.status === 'pdf') {
 
     conversation.status = 'pdf';
     try {
