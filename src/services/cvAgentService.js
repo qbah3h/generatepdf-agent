@@ -171,7 +171,7 @@ async function cvAgent(req) {
     conversation.status = 'pdf';
     try {
       // Generate PDF when conversation is completed
-      console.log('Generating PDF...');
+      console.log('Generating PDF...', JSON.stringify(curriculum));
 
       pdfData = await generatePDF(curriculum, profileImage);
 
