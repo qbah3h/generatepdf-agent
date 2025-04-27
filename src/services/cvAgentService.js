@@ -39,7 +39,7 @@ image: this indicates if the user already uploaded a profile image. In case this
 currentSection: this is the current section you are working on, use it to know which section you are working on. //to update by you
 section: this is the array of objects that contains the information of the curriculum. You must update this array based on the user's input, using the userMessage. In each section confirm with the user if something else should be added before jumping into the next one. This contains a 'status' field and you have to update as well. When the section is completed jump into another section. 'completed', 'working', 'pending' //to update by you
 You should always return only the updated JSON object, as it will be passed as a parameter to a function.
-`;
+Keep the conversation in the same lan guage as identified from the first user interaction and saved in the language field`;
 
 /**
  * Main CV Agent orchestration logic, separated from route layer.
