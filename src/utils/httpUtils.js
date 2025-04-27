@@ -74,6 +74,14 @@ function formatCurriculumData(curriculum) {
   const skillsSection = curriculum.section.find(s => s.name === 'skills');
   const skills = skillsSection ? skillsSection.content : [];
   
+  // Extract certifications section
+  const certificationsSection = curriculum.section.find(s => s.name === 'certifications');
+  const certifications = certificationsSection ? certificationsSection.content : [];
+  
+  // Extract references section
+  const referencesSection = curriculum.section.find(s => s.name === 'references');
+  const references = referencesSection ? referencesSection.content : [];
+  
   // Format the data according to the PDF service requirements
   return {
     fullName: information.fullName || '',
@@ -81,7 +89,12 @@ function formatCurriculumData(curriculum) {
     phone: information.phone || '',
     address: information.address || '',
     summary: information.summary || '',
-    skills: skills,
+    language: information.language || '',
+    style: curriculum.style || 'modern',
+    skills: skills.map(skill => ({
+      title: skill.title || '',
+      description: skill.description || ''
+    })),
     experiences: experiences.map(exp => ({
       jobTitle: exp.jobTitle || '',
       company: exp.company || '',
@@ -99,6 +112,16 @@ function formatCurriculumData(curriculum) {
     projects: projects.map(proj => ({
       title: proj.title || '',
       description: proj.description || ''
+    })),
+    certifications: certifications.map(cert => ({
+      name: cert.name || '',
+      link: cert.link || '',
+      date: cert.date || ''
+    })),
+    references: references.map(ref => ({
+      name: ref.name || '',
+      phone: ref.phone || '',
+      email: ref.email || ''
     }))
   };
 }

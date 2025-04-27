@@ -7,7 +7,11 @@ const InformationSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   address: { type: String, default: '' },
   summary: { type: String, default: '' },
-  skills: { type: [String], default: [] }
+}, { _id: false });
+
+const SkillsSchema = new mongoose.Schema({
+  title: { type: String, default: '' },
+  description: { type: String, default: '' }
 }, { _id: false });
 
 const ExperienceSchema = new mongoose.Schema({
@@ -31,10 +35,22 @@ const ProjectSchema = new mongoose.Schema({
   description: { type: String, default: '' }
 }, { _id: false });
 
+const CertificationsSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  link: { type: String, default: '' },
+  date: { type: String, default: '' }
+}, { _id: false });
+
+const ReferencesSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  email: { type: String, default: '' }
+}, { _id: false });
+
 // Section schema with discriminated content
 const SectionSchema = new mongoose.Schema({
   status: { type: String, enum: ['completed', 'working', 'pending'], default: 'pending' },
-  name: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills'], required: true },
+  name: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills', 'certifications', 'references'], required: true },
   content: {
     type: [mongoose.Schema.Types.Mixed],
     required: true
@@ -44,7 +60,7 @@ const SectionSchema = new mongoose.Schema({
 // Curriculum schema
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  language: {type: String, enum: ['es', 'en'], default: 'es'},
+  language: {type: String, enum: ['es', 'en'], default: ''},
   // userMessage: { type: String, default: '' },
   // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
@@ -107,6 +123,24 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
       content: [{
         title: '',
         description: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'certifications',
+      content: [{
+        name: '',
+        link: '',
+        date: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'references',
+      content: [{
+        name: '',
+        phone: '',
+        email: ''
       }]
     }
   ];
