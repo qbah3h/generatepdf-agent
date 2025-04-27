@@ -90,7 +90,7 @@ Description of JSON Fields (as a guide):
 - newChatbotMessage: you must create a new prompt/message suggesting to the user what information to enter next. This field's content is what will be returned to the user. //to be updated by you
 - status: indicates the overall status of the résumé.
   - 'active': still working on it.
-  - 'pdf': ready to generate the PDF (user confirmed).
+  - 'pdf': PDF is generating and cv will be sent to the user (user confirmed).
   - 'completed': PDF has been generated.
 //to be updated by you
 - style: indicates the desired style of the PDF.
@@ -217,7 +217,6 @@ async function cvAgent(req) {
   Object.assign(curriculum, aiResponse);
 
   let pdfData = null;
-  console.log('Curriculum after AI response:', JSON.stringify(curriculum));
   if (curriculum.status === 'pdf') {
 
     conversation.status = 'pdf';
