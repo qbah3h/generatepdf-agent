@@ -14,6 +14,7 @@ async function generatePDF(curriculumData, image) {
     // Format the curriculum data according to the PDF service requirements
     const formattedData = formatCurriculumData(curriculumData);
     
+    console.log('Formatted data:', formattedData);
     // Create FormData instance
     const formData = new FormData();
     

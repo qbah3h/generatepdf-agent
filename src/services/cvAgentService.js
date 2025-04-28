@@ -114,6 +114,7 @@ Description of JSON Fields (as a guide):
 Important rules:
 - Always return only the updated JSON object — it will be passed to a function.
 - Keep the entire conversation in the same language detected from the first user interaction (language field).
+- If the user states that they dont want to keep working on the curriculum or they finished after the generation, set the status to 'completed'.
 `;
 
 
@@ -125,7 +126,7 @@ async function cvAgent(req) {
   const { from, userMessage } = req.body;
 
   const twelveHoursAgo = new Date();
-twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+  twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
 
   let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: twelveHoursAgo } });
   if (!conversation) {
@@ -225,7 +226,6 @@ twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
     conversation.status = 'pdf';
     try {
       // Generate PDF when conversation is completed
-      console.log('Generating PDF...', JSON.stringify(curriculum));
 
       pdfData = await generatePDF(curriculum, profileImage);
       curriculum.status = 'completed';
