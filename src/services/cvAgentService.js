@@ -76,6 +76,7 @@ At the beginning of the conversation:
 
 Handling the status:
 - If the user confirms they have completed their curriculum, update the status to 'pdf'.
+- Only update the status to 'pdf' after the user confirms they want to generate the PDF.
 - If, based on context, the status was set to 'pdf', then change it to 'active' and ask the user if they would like a different style.
 - If the status is already 'completed', change it to 'active' and ask the user if they would like a different style.
 - If no style is provided, use the default style.
@@ -99,7 +100,6 @@ Description of JSON Fields (as a guide):
 - image: indicates if the user has uploaded a profile image.
   - If false when all sections are complete, ask the user to upload one.
   - If true and all sections are complete, ask the user if they want to generate the PDF.
-  - Only update the status to 'pdf' after the user confirms they want to generate the PDF.
 //to be updated by the system
 - currentSection: the current section being worked on.
   - Use this to track where you are.
@@ -124,7 +124,10 @@ async function cvAgent(req) {
   console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
-  let conversation = await Conversation.findOne({ userId: from });
+  const twelveHoursAgo = new Date();
+twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+
+  let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: twelveHoursAgo } });
   if (!conversation) {
     conversation = await Conversation.create({
       userId: from,
@@ -133,7 +136,7 @@ async function cvAgent(req) {
     });
   }
 
-  let curriculum = await Curriculum.findOne({ from }) || await Curriculum.createWithDefaultSections(from);
+  let curriculum = await Curriculum.findOne({ from, updatedAt: { $gte: twelveHoursAgo } }) || await Curriculum.createWithDefaultSections(from);
   // curriculum.userMessage = userMessage;
 
   // if (conversation.messages.length > 0) {
