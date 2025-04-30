@@ -60,12 +60,12 @@ const SectionSchema = new mongoose.Schema({
 // Curriculum schema
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  language: {type: String, default: ''},
+  language: {type: String, default: 'es'},
   // userMessage: { type: String, default: '' },
   // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
   status: { type: String, default: 'active' }, // active, completed, pdf
-  style: { type: String, enum: ['modern', 'plain', 'traditional'], default: 'modern' },
+  style: { type: String, enum: ['modern', 'plain', 'traditional'], default: 'plain' },
   image: { type: Boolean, default: false },
   currentSection: { type: String, default: 'information' }, // information, experiences, education, projects, skills
   section: [SectionSchema],
