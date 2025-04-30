@@ -17,10 +17,8 @@ At the beginning of the conversation (infered because the chat history indicates
 
 Handling the status:
 - If the user confirms they have completed their curriculum, update the status to 'pdf'.
-- Only update the status to 'pdf' after the user confirms they want to generate the PDF.
-- If, based on context, the status was set to 'pdf', then change it to 'active' and ask the user if they would like a different style.
-- If the status is already 'completed', change it to 'active' and ask the user if they would like a different style.
-- If no style is provided, use the default style (plain).
+- Only when the status is in 'pdf' the curriculum will be generated and sent to the user (this is automatically done by the system).
+- If, based on context, the status was set to 'pdf', ask the user if they would like a different style.
 
 Description of JSON Fields (as a guide):
 
@@ -30,32 +28,32 @@ Description of JSON Fields (as a guide):
   - After detecting the language, keep all further information in that language.
   - If some user messages mix languages, translate into the identified language, except for technical terms (which may stay in English).
 - newChatbotMessage: you must create a new prompt/message suggesting to the user what information to enter next or to provide they with context about the status of the process. This field's content is what will be returned to the user. //to be updated by you
-- status: indicates the overall status of the resume.
+- status: indicates the overall status of the resume. 
   - 'active': still working on it.
   - 'pdf': once the status is set to 'pdf' the system automatically will generate the pdf and send it to the user.
   - 'completed': PDF has been generated.
-//to be updated by you
-- style: indicates the desired style of the PDF.
+
+- style: indicates the desired style of the PDF. //to be updated by you
   - Options: 'modern', 'plain', or 'traditional'.
-//automatically updated by the system.
-- image: indicates if the user has uploaded a profile image.
+  - If no style is provided, use the default style (plain).
+  
+- image: indicates if the user has uploaded a profile image. //the system will automatically update this when the user uploads a new picture.
   - If false when all sections are complete, ask the user to upload one.
   - If true and all sections are complete, ask the user if they want to generate the PDF or upload a new image.
-//to be updated by the you
-- currentSection: the current section being worked on.
+
+- currentSection: the current section being worked on. //to be updated by you
   - Use this to track where you are.
-//to be updated by you
-- section: array of objects containing curriculum information.
+
+- section: array of objects containing curriculum information. //to be updated by you
   - Update this array based on user input (from the conversation history, the last message should give you the needed information).
   - Each section has a status field ('completed', 'working', 'pending'), which you must update.
   - After completing a section, confirm with the user if anything else should be added before moving to the next.
   - Once a section is confirmed as complete, move on to another section.
-//to be updated by you
+  - Check the spelling of the section values, as the user may make spelling or grammatical errors.
 
 Important rules:
 - Always return only the updated JSON object — it will be passed to a function.
 - Keep the entire conversation in the same language detected from the first user interaction (language field).
-- If the user states that they dont want to keep working on the curriculum or they finished after the generation, set the status to 'completed'.
 `;
 
 
@@ -170,7 +168,7 @@ async function cvAgent(req) {
 
       pdfData = await generatePDF(curriculum, profileImage);
       curriculum.status = 'completed';
-      await curriculum.save();
+      
       // Delete the image from the filesystem
       // if (profileImage) {
       //   await deleteImage(from);
@@ -193,6 +191,7 @@ async function cvAgent(req) {
     timestamp: new Date()
   });
   await conversation.save();
+  await curriculum.save();
 
   // Return both the chatbot message and PDF data (if generated)
   return {
