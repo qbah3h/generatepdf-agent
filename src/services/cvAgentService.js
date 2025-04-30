@@ -33,9 +33,10 @@ Description of JSON Fields (as a guide):
   - 'pdf': once the status is set to 'pdf' the system automatically will generate the pdf and send it to the user. Whenever the user states they want to generate the pdf, set the status to 'pdf'.
 
 - style: indicates the desired style of the PDF. //to be updated by you
-  - Options: 'modern', 'plain', or 'traditional'.
+  - Options: 'modern', 'plain'.
   - If no style is provided, use the default style (plain).
-  
+  - Take into account that the user may specify the style in a language other than English, but this section value must be in English, as the function only accepts 'modern' or 'plain'.
+
 - image: indicates if the user has uploaded a profile image. //the system will automatically update this when the user uploads a new picture.
   - If false when all sections are complete, ask the user to upload one.
   - If true and all sections are complete, ask the user if they want to generate the PDF or upload a new image.
