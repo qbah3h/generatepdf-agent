@@ -42,7 +42,7 @@ async function generatePDF(curriculumData, image) {
     );
     
     // Generate a filename based on the curriculum data
-    const filename = `${formattedData.fullName.replace(/\s+/g, '_')}_CV_${new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = `${formattedData.fullName.replace(/\s+/g, '_')}.pdf`;
     
     console.log(`Generated PDF with filename: ${filename}`);
     
