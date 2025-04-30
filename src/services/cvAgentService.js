@@ -67,7 +67,7 @@ async function cvAgent(req) {
   const { from, userMessage } = req.body;
 
   const twelveHoursAgo = new Date();
-  twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+  twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 1);
 
   let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: twelveHoursAgo } });
   if (!conversation) {
