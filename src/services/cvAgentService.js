@@ -30,8 +30,7 @@ Description of JSON Fields (as a guide):
 - newChatbotMessage: you must create a new prompt/message suggesting to the user what information to enter next or to provide they with context about the status of the process. This field's content is what will be returned to the user. //to be updated by you
 - status: indicates the overall status of the resume. 
   - 'active': still working on it.
-  - 'pdf': once the status is set to 'pdf' the system automatically will generate the pdf and send it to the user.
-  - 'completed': PDF has been generated.
+  - 'pdf': once the status is set to 'pdf' the system automatically will generate the pdf and send it to the user. Whenever the user states they want to generate the pdf, set the status to 'pdf'.
 
 - style: indicates the desired style of the PDF. //to be updated by you
   - Options: 'modern', 'plain', or 'traditional'.
