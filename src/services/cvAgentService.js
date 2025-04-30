@@ -160,13 +160,17 @@ async function cvAgent(req) {
   Object.assign(curriculum, aiResponse);
 
   let pdfData = null;
+  let pdfFilename = null;
   if (curriculum.status === 'pdf') {
 
     conversation.status = 'pdf';
     try {
       // Generate PDF when conversation is completed
-
-      pdfData = await generatePDF(curriculum, profileImage);
+      const pdfResult = await generatePDF(curriculum, profileImage);
+      pdfData = pdfResult.pdfBuffer;
+      pdfFilename = pdfResult.filename;
+      
+      console.log(`PDF generated successfully with filename: ${pdfFilename}`);
       curriculum.status = 'completed';
       
       // Delete the image from the filesystem
@@ -193,10 +197,11 @@ async function cvAgent(req) {
   await conversation.save();
   await curriculum.save();
 
-  // Return both the chatbot message and PDF data (if generated)
+  // Return the chatbot message, PDF data, and filename (if generated)
   return {
     message: curriculum.newChatbotMessage,
     pdfData: pdfData,
+    pdfFilename: pdfFilename,
     status: curriculum.status
   };
 }

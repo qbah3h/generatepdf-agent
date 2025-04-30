@@ -18,7 +18,11 @@ async function orchestrateProcessing(req, res, next) {
     if (agentResponse.pdfData) {
       // Serve the PDF directly
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${req.body.from}_cv.pdf"`); 
+      
+      // Use the filename from the response if available, otherwise fallback to default
+      const filename = agentResponse.pdfFilename || `${req.body.from}_cv.pdf`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`); 
+      console.log(`Serving PDF with filename: ${filename}`);
       // return res.send(agentResponse.pdfData);
     }
     

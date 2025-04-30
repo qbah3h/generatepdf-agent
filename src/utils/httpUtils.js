@@ -7,7 +7,7 @@ dotenv.config();
  * Calls the PDF generation service with the curriculum data
  * @param {Object} curriculumData - The curriculum data to generate a PDF from
  * @param {Buffer} [image] - Optional profile image data
- * @returns {Promise<Buffer>} - The PDF content as a buffer
+ * @returns {Promise<Object>} - Object containing the PDF content as a buffer and the filename
  */
 async function generatePDF(curriculumData, image) {
   try {
@@ -41,8 +41,16 @@ async function generatePDF(curriculumData, image) {
       }
     );
     
-    // Return the PDF content as a buffer
-    return Buffer.from(response.data);
+    // Generate a filename based on the curriculum data
+    const filename = `${formattedData.fullName.replace(/\s+/g, '_')}_CV_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    console.log(`Generated PDF with filename: ${filename}`);
+    
+    // Return both the PDF content as a buffer and the filename
+    return {
+      pdfBuffer: Buffer.from(response.data),
+      filename: filename
+    };
   } catch (error) {
     console.error('Error generating PDF:', error.message);
     throw new Error(`Failed to generate PDF: ${error.message}`);
