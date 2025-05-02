@@ -15,7 +15,7 @@ async function orchestrateProcessing(req, res, next) {
     const agentResponse = await cvAgent(req);
     
     // Check if PDF was generated (conversation completed)
-    if (agentResponse.pdfData) {
+    if (agentResponse && agentResponse.pdfData) {
       // Serve the PDF directly
       res.setHeader('Content-Type', 'application/pdf');
       
