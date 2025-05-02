@@ -61,13 +61,16 @@ Important rules:
  * Main CV Agent orchestration logic, separated from route layer.
  */
 async function cvAgent(req) {
-  console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
+  const startTime = Date.now();
+  console.log(`---------- cvAgent START [${new Date().toISOString()}] ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
   const oneHourAgo = new Date();
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
+  const dbLookupStartTime = Date.now();
   let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: oneHourAgo } });
+  console.log(`DB lookup for conversation completed in ${Date.now() - dbLookupStartTime}ms`);
   if (!conversation) {
     conversation = await Conversation.create({
       userId: from,
@@ -76,7 +79,9 @@ async function cvAgent(req) {
     });
   }
 
+  const curriculumLookupStartTime = Date.now();
   let curriculum = await Curriculum.findOne({ from, updatedAt: { $gte: oneHourAgo } }) || await Curriculum.createWithDefaultSections(from);
+  console.log(`DB lookup for curriculum completed in ${Date.now() - curriculumLookupStartTime}ms`);
 
   curriculum.newChatbotMessage = '';
 
@@ -90,8 +95,10 @@ async function cvAgent(req) {
   // Try to get profile image for the user
   let profileImage = null;
   try {
+    const imageStartTime = Date.now();
     const imageData = await getImageById(from);
     profileImage = imageData.data;
+    console.log(`Profile image retrieval completed in ${Date.now() - imageStartTime}ms`);
   } catch (imageError) {
     console.log('No profile image found or error retrieving image:', imageError.message);
     // Continue without image if not found or error occurs
@@ -115,9 +122,11 @@ async function cvAgent(req) {
   const MAX_RETRIES = 5;
   let errorOccurred = false;
 
+  const aiLoopStartTime = Date.now();
   while (aiResponse === null && retryCount < MAX_RETRIES) {
     try {
       // First attempt or retry with the same prompt
+      const aiCallStartTime = Date.now();
       const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
         model: 'gpt-4o-mini', //'gpt-4o',
         messages: inputMessages
@@ -150,6 +159,7 @@ async function cvAgent(req) {
       // Log token usage for monitoring
       console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
       console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
+      console.log(`OpenAI API call completed in ${Date.now() - aiCallStartTime}ms`);
 
       const aiResponseText = response.choices[0].message.content;
       console.log('Raw AI response:', aiResponseText);
@@ -173,11 +183,12 @@ async function cvAgent(req) {
         conversation.status = 'pdf';
         try {
           // Generate PDF when conversation is completed
+          const pdfStartTime = Date.now();
           const pdfResult = await generatePDF(curriculum, profileImage);
           pdfData = pdfResult.pdfBuffer;
           pdfFilename = pdfResult.filename;
 
-          console.log(`PDF generated successfully with filename: ${pdfFilename}`);
+          console.log(`PDF generated successfully with filename: ${pdfFilename} in ${Date.now() - pdfStartTime}ms`);
           curriculum.status = 'completed';
 
           // Delete the image from the filesystem
@@ -201,15 +212,21 @@ async function cvAgent(req) {
         content: curriculum.newChatbotMessage,
         timestamp: new Date()
       });
+      const dbSaveStartTime = Date.now();
       await conversation.save();
       await curriculum.save();
+      console.log(`Database save completed in ${Date.now() - dbSaveStartTime}ms`);
 
       // If we had an error before but succeeded now, log the recovery
       if (errorOccurred) {
         console.log(`Successfully recovered from previous error on retry ${retryCount}`);
       }
     
+      console.log(`AI processing loop completed in ${Date.now() - aiLoopStartTime}ms`);
+      
       // Return the chatbot message, PDF data, and filename (if generated)
+      const totalExecutionTime = Date.now() - startTime;
+      console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
       return {
         message: curriculum.newChatbotMessage,
         pdfData: pdfData,
@@ -239,6 +256,7 @@ async function cvAgent(req) {
             }
           ];
 
+          const simplifiedAiStartTime = Date.now();
           const { response } = await callOpenAIWithTokenCount({
             model: 'gpt-4o-mini',
             messages: simplifiedMessages
@@ -246,17 +264,21 @@ async function cvAgent(req) {
 
           const simpleResponseText = response.choices[0].message.content;
 
-          console.log('Successfully got response with simplified prompt', simpleResponseText);
+          console.log(`Successfully got response with simplified prompt in ${Date.now() - simplifiedAiStartTime}ms`, simpleResponseText);
 
           conversation.messages.push({
             role: 'assistant',
             content: simpleResponseText,
             timestamp: new Date()
           });
+          const fallbackDbSaveStartTime = Date.now();
           await conversation.save();
           await curriculum.save();
+          console.log(`Fallback database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
         
           // Return the chatbot message, PDF data, and filename (if generated)
+          const totalExecutionTime = Date.now() - startTime;
+          console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
           return {
             message: simpleResponseText,
             pdfData: null,
@@ -281,4 +303,5 @@ async function cvAgent(req) {
   }
 }
 
+// Add a final fallback return with timing in case all retries fail
 module.exports = { cvAgent };
