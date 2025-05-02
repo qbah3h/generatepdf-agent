@@ -168,7 +168,7 @@ async function cvAgent(req) {
     try {
       // First attempt or retry with the same prompt
       const aiCallStartTime = Date.now();
-      if (retryCount > 4) {
+      if (retryCount === MAX_RETRIES - 1) {
         console.log(`Retrying AI call for ${retryCount} time. Previous errors: ${errorOccurred}`);
 
         const action = `You are an assistant for creating resumes (CVs).
@@ -252,15 +252,50 @@ async function cvAgent(req) {
           //   await deleteImage(from);
           // }
 
+          const systemPromptPdfGenerating = `The resume has been finalized and the PDF is being generated. 
+          Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
+          The message should inform the user that the PDF is being generated and sent. 
+          Also, ask if they would like to regenerate the PDF with a different style ('plain' or 'modern').
+          Respond with only the message content as a string.`;
+          
+          inputMessages = [
+            { role: 'system', content: systemPromptPdfGenerating },
+          ];
+          
+          const aiCallStartTime = Date.now();
+          const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
+            model: 'gpt-4o-mini', //'gpt-4o',
+            messages: inputMessages
+          });
+
+          const generatingPdfMessage = response.choices[0].message.content;
+
+          console.log(`Successfully got response with simplified prompt in ${Date.now() - aiCallStartTime}ms`, generatingPdfMessage);
+
+          conversation.messages.push({
+            role: 'assistant',
+            content: generatingPdfMessage,
+            timestamp: new Date()
+          });
+
+          conversation.status = 'archived';
+
+          const fallbackDbSaveStartTime = Date.now();
+          await conversation.save();
+          await curriculum.save();
+          console.log(`Database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
+
+          return {
+            message: generatingPdfMessage,
+            pdfData: pdfData,
+            pdfFilename: pdfFilename,
+            status: curriculum.status
+          };
+
         } catch (error) {
           console.error('Error generating PDF:', error);
           // Continue with the conversation even if PDF generation fails
         }
-      }
-
-      // create similar to set the status to PDF
-      if (curriculum.status === 'completed') {
-        conversation.status = 'archived';
       }
 
       conversation.messages.push({
@@ -345,7 +380,7 @@ async function cvAgent(req) {
           console.error('Final retry attempt failed:', finalError.message);
 
           // Create a minimal valid response as fallback
-          
+
           console.log('Using fallback response');
           return;
         }
