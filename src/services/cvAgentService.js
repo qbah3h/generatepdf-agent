@@ -256,7 +256,9 @@ async function cvAgent(req) {
           Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
           The message should inform the user that the PDF is being generated and sent. 
           Also, ask if they would like to regenerate the PDF with a different style ('plain' or 'modern').
-          Respond with only the message content as a string.`;
+          Respond with only the message content as a string.
+          I am providing with the last messages from the conversation to help you understand the context.
+          ${JSON.stringify(conversation.messages.slice(-5))}`;
           
           inputMessages = [
             { role: 'system', content: systemPromptPdfGenerating },
