@@ -156,7 +156,6 @@ async function cvAgent(req) {
   let inputMessages = [
     { role: 'system', content: promptAiFixed + promptWithObject + conversationHistory },
   ];
-  console.log('Input messages:', inputMessages);
 
   // Add retry logic for AI calls
   let aiResponse = null;
@@ -169,14 +168,21 @@ async function cvAgent(req) {
     try {
       // First attempt or retry with the same prompt
       const aiCallStartTime = Date.now();
-      if (retryCount > 0) {
-        const action = `Given the JSON object and the conversation history, fill the JSON with the apropiate information.
+      if (retryCount > 4) {
+        console.log(`Retrying AI call for ${retryCount} time. Previous errors: ${errorOccurred}`);
+
+        const action = `You are an assistant for creating resumes (CVs).
+        Only update the sections values, and the nextChatbotMessage field. Do not update any other field.
+        Given the JSON object and the conversation history, fill the JSON with the apropiate information.
         The JSON may contain sections that are not complete, so you must check them and fill them with the apropiate information if needed.
         Return the updated JSON object. It will be used as an input for a javascript function.`;
         inputMessages = [
           { role: 'system', content: action + promptWithObject + conversationHistory },
         ];
       }
+
+      console.log('Input messages:', inputMessages);
+
       const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
         model: 'gpt-4o-mini', //'gpt-4o',
         messages: inputMessages
@@ -290,8 +296,8 @@ async function cvAgent(req) {
       console.error(`Error on AI call attempt ${retryCount}:`, error.message);
 
       // If this is the last retry, modify the approach
-      if (retryCount === 1) {
-        console.log('Using simplified prompt for final retry attempt');
+      if (retryCount === 1 && curriculum.status === 'pdf') {
+        console.log('Using simplified prompt for first retry attempt at pdf status');
 
         try {
           // Use a simplified prompt that focuses on just returning valid JSON
@@ -339,8 +345,9 @@ async function cvAgent(req) {
           console.error('Final retry attempt failed:', finalError.message);
 
           // Create a minimal valid response as fallback
-
+          
           console.log('Using fallback response');
+          return;
         }
       } else if (retryCount < MAX_RETRIES - 1) {
         // Wait before retrying (exponential backoff)
