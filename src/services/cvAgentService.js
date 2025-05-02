@@ -109,96 +109,176 @@ async function cvAgent(req) {
   ];
   console.log('Input messages:', inputMessages);
 
-  const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
-    model: 'gpt-4o-mini', //'gpt-4o',
-    messages: inputMessages
-  });
+  // Add retry logic for AI calls
+  let aiResponse = null;
+  let retryCount = 0;
+  const MAX_RETRIES = 5;
+  let errorOccurred = false;
 
-  // Store token counts in conversation metadata
-  if (!conversation.metadata) {
-    conversation.metadata = new Map();
-  }
-
-  // Initialize token counters if they don't exist
-  if (!conversation.metadata.get('totalInputTokens')) {
-    conversation.metadata.set('totalInputTokens', 0);
-  }
-  if (!conversation.metadata.get('totalOutputTokens')) {
-    conversation.metadata.set('totalOutputTokens', 0);
-  }
-
-  // Update token counts
-  conversation.metadata.set('totalInputTokens',
-    parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
-  conversation.metadata.set('totalOutputTokens',
-    parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
-
-  // Store token counts for this specific interaction
-  const interactionIndex = Math.floor(conversation.messages.length / 2);
-  conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
-  conversation.metadata.set(`interaction_${interactionIndex}_outputTokens`, outputTokens);
-
-  // Log token usage for monitoring
-  console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
-  console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
-
-  const aiResponseText = response.choices[0].message.content;
-  console.log('Raw AI response:', aiResponseText);
-
-  // to clean the response as it conaing no JSON data
-  let cleaned = aiResponseText.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-  }
-
-  const aiResponse = JSON.parse(cleaned);
-  Object.assign(curriculum, aiResponse);
-
-  let pdfData = null;
-  let pdfFilename = null;
-  if (curriculum.status === 'pdf') {
-
-    conversation.status = 'pdf';
+  while (aiResponse === null && retryCount < MAX_RETRIES) {
     try {
-      // Generate PDF when conversation is completed
-      const pdfResult = await generatePDF(curriculum, profileImage);
-      pdfData = pdfResult.pdfBuffer;
-      pdfFilename = pdfResult.filename;
-      
-      console.log(`PDF generated successfully with filename: ${pdfFilename}`);
-      curriculum.status = 'completed';
-      
-      // Delete the image from the filesystem
-      // if (profileImage) {
-      //   await deleteImage(from);
-      // }
+      // First attempt or retry with the same prompt
+      const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
+        model: 'gpt-4o-mini', //'gpt-4o',
+        messages: inputMessages
+      });
+
+      // Store token counts in conversation metadata
+      if (!conversation.metadata) {
+        conversation.metadata = new Map();
+      }
+
+      // Initialize token counters if they don't exist
+      if (!conversation.metadata.get('totalInputTokens')) {
+        conversation.metadata.set('totalInputTokens', 0);
+      }
+      if (!conversation.metadata.get('totalOutputTokens')) {
+        conversation.metadata.set('totalOutputTokens', 0);
+      }
+
+      // Update token counts
+      conversation.metadata.set('totalInputTokens',
+        parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
+      conversation.metadata.set('totalOutputTokens',
+        parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
+
+      // Store token counts for this specific interaction
+      const interactionIndex = Math.floor(conversation.messages.length / 2);
+      conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
+      conversation.metadata.set(`interaction_${interactionIndex}_outputTokens`, outputTokens);
+
+      // Log token usage for monitoring
+      console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
+      console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
+
+      const aiResponseText = response.choices[0].message.content;
+      console.log('Raw AI response:', aiResponseText);
+
+      // Clean the response as it may contain markdown formatting
+      let cleaned = aiResponseText.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+      }
+
+      // Try to parse the JSON response
+      aiResponse = JSON.parse(cleaned);
+
+      // Apply the AI response to the curriculum
+      Object.assign(curriculum, aiResponse);
+
+      let pdfData = null;
+      let pdfFilename = null;
+      if (curriculum.status === 'pdf') {
+
+        conversation.status = 'pdf';
+        try {
+          // Generate PDF when conversation is completed
+          const pdfResult = await generatePDF(curriculum, profileImage);
+          pdfData = pdfResult.pdfBuffer;
+          pdfFilename = pdfResult.filename;
+
+          console.log(`PDF generated successfully with filename: ${pdfFilename}`);
+          curriculum.status = 'completed';
+
+          // Delete the image from the filesystem
+          // if (profileImage) {
+          //   await deleteImage(from);
+          // }
+
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+          // Continue with the conversation even if PDF generation fails
+        }
+      }
+
+      // create similar to set the status to PDF
+      if (curriculum.status === 'completed') {
+        conversation.status = 'archived';
+      }
+
+      conversation.messages.push({
+        role: 'assistant',
+        content: curriculum.newChatbotMessage,
+        timestamp: new Date()
+      });
+      await conversation.save();
+      await curriculum.save();
+    
+      // Return the chatbot message, PDF data, and filename (if generated)
+      return {
+        message: curriculum.newChatbotMessage,
+        pdfData: pdfData,
+        pdfFilename: pdfFilename,
+        status: curriculum.status
+      };
+
+      // If we had an error before but succeeded now, log the recovery
+      if (errorOccurred) {
+        console.log(`Successfully recovered from previous error on retry ${retryCount}`);
+      }
 
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      // Continue with the conversation even if PDF generation fails
+      retryCount++;
+      errorOccurred = true;
+      console.error(`Error on AI call attempt ${retryCount}:`, error.message);
+
+      // If this is the last retry, modify the approach
+      if (retryCount === MAX_RETRIES - 3) {
+        console.log('Using simplified prompt for final retry attempt');
+
+        try {
+          // Use a simplified prompt that focuses on just returning valid JSON
+          const simplifiedMessages = [
+            {
+              role: 'system',
+              content: `You are a CV assistant. Return ONLY a valid JSON object with these fields:
+              - newChatbotMessage: "We're experiencing some technical difficulties. Your CV will be processed and sent to you as soon as possible."
+              Tell the user the pdf will be sent when ready`
+            }
+          ];
+
+          const { response } = await callOpenAIWithTokenCount({
+            model: 'gpt-4o-mini',
+            messages: simplifiedMessages
+          });
+
+          const simpleResponseText = response.choices[0].message.content;
+
+          console.log('Successfully got response with simplified prompt', simpleResponseText);
+
+          conversation.messages.push({
+            role: 'assistant',
+            content: simpleResponseText,
+            timestamp: new Date()
+          });
+          await conversation.save();
+          await curriculum.save();
+        
+          // Return the chatbot message, PDF data, and filename (if generated)
+          return {
+            message: simpleResponseText,
+            pdfData: null,
+            pdfFilename: null,
+            status: "retry"
+          };
+
+          
+
+        } catch (finalError) {
+          console.error('Final retry attempt failed:', finalError.message);
+
+          // Create a minimal valid response as fallback
+
+          console.log('Using fallback response');
+        }
+      } else if (retryCount < MAX_RETRIES - 1) {
+        // Wait before retrying (exponential backoff)
+        const waitTime = Math.pow(2, retryCount) * 1000;
+        console.log(`Waiting ${waitTime}ms before retry ${retryCount + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
   }
-
-  // create similar to set the status to PDF
-  if (curriculum.status === 'completed') {
-    conversation.status = 'archived';
-  }
-
-  conversation.messages.push({
-    role: 'assistant',
-    content: curriculum.newChatbotMessage,
-    timestamp: new Date()
-  });
-  await conversation.save();
-  await curriculum.save();
-
-  // Return the chatbot message, PDF data, and filename (if generated)
-  return {
-    message: curriculum.newChatbotMessage,
-    pdfData: pdfData,
-    pdfFilename: pdfFilename,
-    status: curriculum.status
-  };
 }
 
 module.exports = { cvAgent };
