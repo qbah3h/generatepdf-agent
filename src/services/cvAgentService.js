@@ -91,7 +91,7 @@ Field handling rules:
 
 - **section**: Array of resume sections. Update based on latest user message. Each section has a status: 'pending', 'working', or 'completed'. Confirm completion before moving on. Correct spelling/grammar in section names.
 
-- **newChatbotMessage**: Message to send back to the user. Summarize updates, ask clarifying questions, or move to the next step based on section progress.
+- **newChatbotMessage**: Message to send back to the user. Summarize updates, ask clarifying questions, or move to the next step based on section progress. It is mandatory.
 
 General rules:
 - Keep all conversation in the detected language.
@@ -233,12 +233,12 @@ async function cvAgent(req) {
         //   await deleteImage(from);
         // }
 
-        const systemPromptPdfGenerating = `The resume has been finalized and the PDF is being generated. 
+        const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
           Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
-          The message should inform the user that the PDF is being generated and sent. 
-          Also, ask if they would like to regenerate the PDF with a different style ('plain' or 'modern').
+          The message should inform the user that the PDF was sent. 
+          Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain') (translate to the user language).
           Respond with only the message content as a string.
-          I am providing with the last messages from the conversation to help you understand the context.
+          I am providing with the last messages from the conversation to help you understand the context, keep tone, style and language.
           ${JSON.stringify(conversation.messages.slice(-5))}`;
 
         inputMessages = [
