@@ -203,6 +203,11 @@ async function cvAgent(req) {
       });
       await conversation.save();
       await curriculum.save();
+
+      // If we had an error before but succeeded now, log the recovery
+      if (errorOccurred) {
+        console.log(`Successfully recovered from previous error on retry ${retryCount}`);
+      }
     
       // Return the chatbot message, PDF data, and filename (if generated)
       return {
@@ -211,11 +216,6 @@ async function cvAgent(req) {
         pdfFilename: pdfFilename,
         status: curriculum.status
       };
-
-      // If we had an error before but succeeded now, log the recovery
-      if (errorOccurred) {
-        console.log(`Successfully recovered from previous error on retry ${retryCount}`);
-      }
 
     } catch (error) {
       retryCount++;
@@ -261,8 +261,6 @@ async function cvAgent(req) {
             pdfFilename: null,
             status: "retry"
           };
-
-          
 
         } catch (finalError) {
           console.error('Final retry attempt failed:', finalError.message);
