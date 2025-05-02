@@ -231,9 +231,11 @@ async function cvAgent(req) {
           const simplifiedMessages = [
             {
               role: 'system',
-              content: `You are a CV assistant. Return ONLY a valid JSON object with these fields:
-              - newChatbotMessage: "We're experiencing some technical difficulties. Your CV will be processed and sent to you as soon as possible."
-              Tell the user the pdf will be sent when ready`
+              content: `You are an assistant for creating resumes (CVs).
+              Now the main flow is having issues and the user is expecting a curriculum in PDF format will be generated.
+              The idea is to craft a message to let the user know we are having issues and the pdf will be sent when ready.
+              I am providing with the last messages from the conversation so you can get the tone and style.
+              ${JSON.stringify(conversation.messages.slice(-5))}`
             }
           ];
 
