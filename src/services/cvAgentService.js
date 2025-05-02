@@ -351,7 +351,11 @@ async function cvAgent(req) {
         timestamp: new Date()
       });
       const fallbackDbSaveStartTime = Date.now();
-      await conversation.save();
+      // Start save operations without awaiting them
+      conversation.save()
+        .then(() => console.log('Conversation saved successfully in background thread'))
+        .catch(err => console.error('Error saving conversation in background:', err));
+
       console.log(`Fallback database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
 
       // Return the chatbot message, PDF data, and filename (if generated)
