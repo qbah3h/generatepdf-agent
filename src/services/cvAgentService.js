@@ -264,8 +264,15 @@ async function cvAgent(req) {
         conversation.status = 'archived';
 
         const fallbackDbSaveStartTime = Date.now();
-        await conversation.save();
-        await curriculum.save();
+        // Start save operations without awaiting them
+        conversation.save()
+          .then(() => console.log('Conversation saved successfully in background thread'))
+          .catch(err => console.error('Error saving conversation in background:', err));
+
+        curriculum.save()
+          .then(() => console.log('Curriculum saved successfully in background thread'))
+          .catch(err => console.error('Error saving curriculum in background:', err));
+
         console.log(`Database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
 
         return {
@@ -287,8 +294,15 @@ async function cvAgent(req) {
       timestamp: new Date()
     });
     const dbSaveStartTime = Date.now();
-    await conversation.save();
-    await curriculum.save();
+    // Start save operations without awaiting them
+    conversation.save()
+      .then(() => console.log('Conversation saved successfully in background thread'))
+      .catch(err => console.error('Error saving conversation in background:', err));
+
+    curriculum.save()
+      .then(() => console.log('Curriculum saved successfully in background thread'))
+      .catch(err => console.error('Error saving curriculum in background:', err));
+
     console.log(`Database save completed in ${Date.now() - dbSaveStartTime}ms`);
 
     console.log(`AI processing loop completed in ${Date.now() - aiLoopStartTime}ms`);
