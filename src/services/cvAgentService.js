@@ -5,6 +5,11 @@ const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
 const { getImageById, deleteImage } = require('../services/imageService');
 
+/**
+ * Constants and configuration
+ */
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 const promptAiFixed0 = `
 You are an AI assistant specialized in creating resumes (CVs). You will receive a data model in JSON format, which you must complete and maintain up to date.
 
@@ -100,284 +105,360 @@ General rules:
 `;
 
 /**
- * Main CV Agent orchestration logic, separated from route layer.
+ * Retrieves or creates a conversation for the user
+ * @param {string} userId - The user ID
+ * @param {string} userMessage - The user's message
+ * @param {Date} oneHourAgo - Timestamp for recent conversations
+ * @returns {Object} The conversation object
  */
-async function cvAgent(req) {
-  const startTime = Date.now();
-  console.log(`---------- cvAgent START [${new Date().toISOString()}] ---------- request.body ${JSON.stringify(req.body)}`)
-  const { from, userMessage } = req.body;
-
-  const oneHourAgo = new Date();
-  oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-
+async function getOrCreateConversation(userId, userMessage, oneHourAgo) {
   const dbLookupStartTime = Date.now();
-  let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: oneHourAgo } });
+  let conversation = await Conversation.findOne({ userId, updatedAt: { $gte: oneHourAgo } });
   console.log(`DB lookup for conversation completed in ${Date.now() - dbLookupStartTime}ms`);
+  
   if (!conversation) {
     conversation = await Conversation.create({
-      userId: from,
+      userId,
       messages: [],
       status: 'active'
     });
   }
-
-  const curriculumLookupStartTime = Date.now();
-  let curriculum = await Curriculum.findOne({ from, updatedAt: { $gte: oneHourAgo } }) || await Curriculum.createWithDefaultSections(from);
-  console.log(`DB lookup for curriculum completed in ${Date.now() - curriculumLookupStartTime}ms`);
-
-  curriculum.newChatbotMessage = '';
-
+  
+  // Add user message to conversation
   conversation.messages.push({
     role: 'user',
     content: userMessage,
     timestamp: new Date()
   });
   conversation.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  return conversation;
+}
 
-  // Try to get profile image for the user
-  let profileImage = null;
+/**
+ * Retrieves or creates a curriculum for the user
+ * @param {string} userId - The user ID
+ * @param {Date} oneHourAgo - Timestamp for recent curriculum
+ * @returns {Object} The curriculum object
+ */
+async function getOrCreateCurriculum(userId, oneHourAgo) {
+  const curriculumLookupStartTime = Date.now();
+  let curriculum = await Curriculum.findOne({ from: userId, updatedAt: { $gte: oneHourAgo } }) || 
+                   await Curriculum.createWithDefaultSections(userId);
+  console.log(`DB lookup for curriculum completed in ${Date.now() - curriculumLookupStartTime}ms`);
+  
+  curriculum.newChatbotMessage = '';
+  return curriculum;
+}
+
+/**
+ * Retrieves the user's profile image
+ * @param {string} userId - The user ID
+ * @returns {Buffer|null} The profile image data or null if not found
+ */
+async function getUserProfileImage(userId) {
   try {
     const imageStartTime = Date.now();
-    const imageData = await getImageById(from);
-    profileImage = imageData.data;
+    const imageData = await getImageById(userId);
     console.log(`Profile image retrieval completed in ${Date.now() - imageStartTime}ms`);
+    return imageData.data;
   } catch (imageError) {
     console.log('No profile image found or error retrieving image:', imageError.message);
-    // Continue without image if not found or error occurs
+    return null; // Return null to allow the main flow to continue, not finish it abruptly
   }
+}
 
-  if (profileImage) {
-    curriculum.image = true;
-  }
-
+/**
+ * Prepares the AI prompt with curriculum data and conversation history
+ * @param {Object} curriculum - The curriculum object
+ * @param {Array} messages - The conversation messages
+ * @returns {Array} Array of message objects for the AI
+ */
+function prepareAIPrompt(curriculum, messages) {
   const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
-  const conversationHistory = `This is the coversation history: ${JSON.stringify(conversation.messages)}`;
-
-  let inputMessages = [
+  const conversationHistory = `This is the coversation history: ${JSON.stringify(messages)}`;
+  
+  return [
     { role: 'system', content: promptAiFixed + promptWithObject + conversationHistory },
   ];
+}
 
+/**
+ * Updates token usage metadata in the conversation
+ * @param {Object} conversation - The conversation object
+ * @param {number} inputTokens - Number of input tokens
+ * @param {number} outputTokens - Number of output tokens
+ */
+function updateTokenMetadata(conversation, inputTokens, outputTokens) {
+  // Initialize metadata if it doesn't exist
+  if (!conversation.metadata) {
+    conversation.metadata = new Map();
+  }
+  
+  // Initialize token counters if they don't exist
+  if (!conversation.metadata.get('totalInputTokens')) {
+    conversation.metadata.set('totalInputTokens', 0);
+  }
+  if (!conversation.metadata.get('totalOutputTokens')) {
+    conversation.metadata.set('totalOutputTokens', 0);
+  }
+  
+  // Update token counts
+  conversation.metadata.set('totalInputTokens',
+    parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
+  conversation.metadata.set('totalOutputTokens',
+    parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
+  
+  // Store token counts for this specific interaction
+  const interactionIndex = Math.floor(conversation.messages.length / 2);
+  conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
+  conversation.metadata.set(`interaction_${interactionIndex}_outputTokens`, outputTokens);
+  
+  // Log token usage for monitoring
+  console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
+  console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
+}
 
-  const aiLoopStartTime = Date.now();
+/**
+ * Processes the AI response and updates the curriculum
+ * @param {string} aiResponseText - The raw AI response text
+ * @returns {Object} The parsed AI response
+ */
+function processAIResponse(aiResponseText) {
+  console.log('Raw AI response:', aiResponseText);
+  
+  // Clean the response as it may contain markdown formatting
+  let cleaned = aiResponseText.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
+  }
+  
+  // Try to parse the JSON response
+  return JSON.parse(cleaned);
+}
+
+/**
+ * Handles PDF generation when curriculum status is 'pdf'
+ * @param {Object} curriculum - The curriculum object
+ * @param {Buffer} profileImage - The user's profile image
+ * @param {Object} conversation - The conversation object
+ * @returns {Object|null} PDF data and message if generated, null otherwise
+ */
+async function handlePDFGeneration(curriculum, profileImage, conversation) {
+  if (curriculum.status !== 'pdf') {
+    return null;
+  }
+  
+  conversation.status = 'pdf';
+  
   try {
+    // Generate PDF when conversation is completed
+    const pdfStartTime = Date.now();
+    const pdfResult = await generatePDF(curriculum, profileImage);
+    const pdfData = pdfResult.pdfBuffer;
+    const pdfFilename = pdfResult.filename;
+    
+    console.log(`PDF generated successfully in ${Date.now() - pdfStartTime}ms`);
+    curriculum.status = 'completed';
+    
+    // Generate a dynamic message using OpenAI instead of hardcoded text
+    const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
+      Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
+      The message should inform the user that the PDF was sent. 
+      Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain') (translate to the user language).
+      Respond with only the message content as a string.
+      I am providing with the last messages from the conversation to help you understand the context, keep tone, style and language.
+      ${JSON.stringify(conversation.messages.slice(-5))}`;
+    
     const aiCallStartTime = Date.now();
+    const { response } = await callOpenAIWithTokenCount({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPromptPdfGenerating }
+      ]
+    });
+    
+    const generatingPdfMessage = response.choices[0].message.content;
+    console.log(`Generated PDF message in ${Date.now() - aiCallStartTime}ms:`, generatingPdfMessage);
+    
+    // Add the message to the conversation
+    conversation.messages.push({
+      role: 'assistant',
+      content: generatingPdfMessage,
+      timestamp: new Date()
+    });
+    
+    // Save data asynchronously
+    saveDataAsync(conversation, curriculum);
+    
+    return {
+      message: generatingPdfMessage,
+      pdfData,
+      pdfFilename,
+      status: curriculum.status
+    };
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    return null; // Continue with the conversation even if PDF generation fails
+  }
+}
 
+/**
+ * Saves conversation and curriculum data asynchronously
+ * @param {Object} conversation - The conversation object
+ * @param {Object} curriculum - The curriculum object
+ */
+function saveDataAsync(conversation, curriculum) {
+  const dbSaveStartTime = Date.now();
+  
+  // Start save operations without awaiting them
+  conversation.save()
+    .then(() => console.log('Conversation saved successfully in background thread'))
+    .catch(err => console.error('Error saving conversation in background:', err));
+  
+  curriculum.save()
+    .then(() => console.log('Curriculum saved successfully in background thread'))
+    .catch(err => console.error('Error saving curriculum in background:', err));
+  
+  console.log(`Database save initiated in ${Date.now() - dbSaveStartTime}ms`);
+}
+
+/**
+ * Handles error recovery with a simplified prompt
+ * @param {Object} conversation - The conversation object
+ * @param {Date} startTime - The start time of the process
+ * @returns {Object} A simplified response
+ */
+async function handleErrorRecovery(conversation, startTime) {
+  console.log('Using simplified prompt for error');
+  
+  try {
+    // Use a simplified prompt that focuses on just returning valid JSON
+    const simplifiedMessages = [
+      {
+        role: 'system',
+        content: `You are an assistant for creating resumes (CVs).
+            Now the main flow is having issues and the user is expecting a curriculum in PDF format will be generated.
+            The idea is to craft a message to let the user know we are having issues and the pdf will be sent when ready.
+            I am providing with the last messages from the conversation so you can get the tone and style.
+            ${JSON.stringify(conversation.messages.slice(-5))}`
+      }
+    ];
+    
+    const simplifiedAiStartTime = Date.now();
+    const { response } = await callOpenAIWithTokenCount({
+      model: 'gpt-4o-mini',
+      messages: simplifiedMessages
+    });
+    
+    const simpleResponseText = response.choices[0].message.content;
+    
+    console.log(`Successfully got response with simplified prompt in ${Date.now() - simplifiedAiStartTime}ms`, simpleResponseText);
+    
+    conversation.messages.push({
+      role: 'assistant',
+      content: simpleResponseText,
+      timestamp: new Date()
+    });
+    
+    // Save conversation asynchronously
+    conversation.save()
+      .then(() => console.log('Conversation saved successfully in background thread'))
+      .catch(err => console.error('Error saving conversation in background:', err));
+    
+    const totalExecutionTime = Date.now() - startTime;
+    console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
+    
+    return {
+      message: simpleResponseText,
+      pdfData: null,
+      pdfFilename: null,
+      status: "retry"
+    };
+  } catch (finalError) {
+    console.error('Final retry attempt failed:', finalError.message);
+    console.log('Using fallback response');
+    return null;
+  }
+}
+
+/**
+ * Main CV Agent orchestration logic, separated from route layer.
+ */
+async function cvAgent(req) {
+  const startTime = Date.now();
+  console.log(`---------- cvAgent START [${new Date().toISOString()}] ---------- request.body ${JSON.stringify(req.body)}`);
+  const { from, userMessage } = req.body;
+
+  // Calculate one hour ago for recent conversations/curriculum
+  const oneHourAgo = new Date(Date.now() - ONE_HOUR_MS);
+
+  try {
+    // Step 1: Get or create conversation and curriculum
+    const conversation = await getOrCreateConversation(from, userMessage, oneHourAgo);
+    const curriculum = await getOrCreateCurriculum(from, oneHourAgo);
+    
+    // Step 2: Get profile image if available
+    const profileImage = await getUserProfileImage(from);
+    if (profileImage) {
+      curriculum.image = true;
+    }
+    
+    // Step 3: Prepare AI prompt and call OpenAI
+    const inputMessages = prepareAIPrompt(curriculum, conversation.messages);
+    const aiLoopStartTime = Date.now();
+    const aiCallStartTime = Date.now();
+    
     console.log('Input messages:', inputMessages);
-
+    
     const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
       model: 'gpt-4o-mini', //'gpt-4o',
       messages: inputMessages
     });
-
-    // Store token counts in conversation metadata
-    if (!conversation.metadata) {
-      conversation.metadata = new Map();
-    }
-
-    // Initialize token counters if they don't exist
-    if (!conversation.metadata.get('totalInputTokens')) {
-      conversation.metadata.set('totalInputTokens', 0);
-    }
-    if (!conversation.metadata.get('totalOutputTokens')) {
-      conversation.metadata.set('totalOutputTokens', 0);
-    }
-
-    // Update token counts
-    conversation.metadata.set('totalInputTokens',
-      parseInt(conversation.metadata.get('totalInputTokens')) + inputTokens);
-    conversation.metadata.set('totalOutputTokens',
-      parseInt(conversation.metadata.get('totalOutputTokens')) + outputTokens);
-
-    // Store token counts for this specific interaction
-    const interactionIndex = Math.floor(conversation.messages.length / 2);
-    conversation.metadata.set(`interaction_${interactionIndex}_inputTokens`, inputTokens);
-    conversation.metadata.set(`interaction_${interactionIndex}_outputTokens`, outputTokens);
-
-    // Log token usage for monitoring
-    console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}, Total for this interaction: ${inputTokens + outputTokens}`);
-    console.log(`Cumulative token usage - Input: ${conversation.metadata.get('totalInputTokens')}, Output: ${conversation.metadata.get('totalOutputTokens')}, Total: ${parseInt(conversation.metadata.get('totalInputTokens')) + parseInt(conversation.metadata.get('totalOutputTokens'))}`);
+    
     console.log(`OpenAI API call completed in ${Date.now() - aiCallStartTime}ms`);
-
-    const aiResponseText = response.choices[0].message.content;
-    console.log('Raw AI response:', aiResponseText);
-
-    // Clean the response as it may contain markdown formatting
-    let cleaned = aiResponseText.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '');
-    }
-
-    // Try to parse the JSON response
-    aiResponse = JSON.parse(cleaned);
-
-    // Apply the AI response to the curriculum
+    
+    // Step 4: Update token usage metadata
+    updateTokenMetadata(conversation, inputTokens, outputTokens);
+    
+    // Step 5: Process AI response
+    const aiResponse = processAIResponse(response.choices[0].message.content);
+    
+    // Step 6: Update curriculum with AI response
     Object.assign(curriculum, aiResponse);
-
-    let pdfData = null;
-    let pdfFilename = null;
-    if (curriculum.status === 'pdf') {
-
-      conversation.status = 'pdf';
-      try {
-        // Generate PDF when conversation is completed
-        const pdfStartTime = Date.now();
-        const pdfResult = await generatePDF(curriculum, profileImage);
-        pdfData = pdfResult.pdfBuffer;
-        pdfFilename = pdfResult.filename;
-
-        console.log(`PDF generated successfully with filename: ${pdfFilename} in ${Date.now() - pdfStartTime}ms`);
-        curriculum.status = 'completed';
-
-        // Delete the image from the filesystem
-        // if (profileImage) {
-        //   await deleteImage(from);
-        // }
-
-        const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
-          Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
-          The message should inform the user that the PDF was sent. 
-          Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain') (translate to the user language).
-          Respond with only the message content as a string.
-          I am providing with the last messages from the conversation to help you understand the context, keep tone, style and language.
-          ${JSON.stringify(conversation.messages.slice(-5))}`;
-
-        inputMessages = [
-          { role: 'system', content: systemPromptPdfGenerating },
-        ];
-
-        const aiCallStartTime = Date.now();
-        const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
-          model: 'gpt-4o-mini', //'gpt-4o',
-          messages: inputMessages
-        });
-
-        const generatingPdfMessage = response.choices[0].message.content;
-
-        console.log(`Successfully got response with simplified prompt in ${Date.now() - aiCallStartTime}ms`, generatingPdfMessage);
-
-        conversation.messages.push({
-          role: 'assistant',
-          content: generatingPdfMessage,
-          timestamp: new Date()
-        });
-
-        conversation.status = 'archived';
-
-        const fallbackDbSaveStartTime = Date.now();
-        // Start save operations without awaiting them
-        conversation.save()
-          .then(() => console.log('Conversation saved successfully in background thread'))
-          .catch(err => console.error('Error saving conversation in background:', err));
-
-        curriculum.save()
-          .then(() => console.log('Curriculum saved successfully in background thread'))
-          .catch(err => console.error('Error saving curriculum in background:', err));
-
-        console.log(`Database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
-
-        return {
-          message: generatingPdfMessage,
-          pdfData: pdfData,
-          pdfFilename: pdfFilename,
-          status: curriculum.status
-        };
-
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-        // Continue with the conversation even if PDF generation fails
-      }
+    
+    // Step 7: Handle PDF generation if needed
+    const pdfResult = await handlePDFGeneration(curriculum, profileImage, conversation);
+    if (pdfResult) {
+      return pdfResult;
     }
-
+    
+    // Step 8: Add assistant message to conversation
     conversation.messages.push({
       role: 'assistant',
       content: curriculum.newChatbotMessage,
       timestamp: new Date()
     });
-    const dbSaveStartTime = Date.now();
-    // Start save operations without awaiting them
-    conversation.save()
-      .then(() => console.log('Conversation saved successfully in background thread'))
-      .catch(err => console.error('Error saving conversation in background:', err));
-
-    curriculum.save()
-      .then(() => console.log('Curriculum saved successfully in background thread'))
-      .catch(err => console.error('Error saving curriculum in background:', err));
-
-    console.log(`Database save completed in ${Date.now() - dbSaveStartTime}ms`);
-
+    
+    // Step 9: Save data asynchronously
+    saveDataAsync(conversation, curriculum);
+    
     console.log(`AI processing loop completed in ${Date.now() - aiLoopStartTime}ms`);
-
-    // Return the chatbot message, PDF data, and filename (if generated)
+    
+    // Step 10: Return response
     const totalExecutionTime = Date.now() - startTime;
     console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
+    
     return {
       message: curriculum.newChatbotMessage,
       pdfData: null,
       pdfFilename: null,
       status: curriculum.status
     };
-
   } catch (error) {
-    console.error(`Error :`, error.message);
-
-    console.log('Using simplified prompt for error');
-
-    try {
-      // Use a simplified prompt that focuses on just returning valid JSON
-      const simplifiedMessages = [
-        {
-          role: 'system',
-          content: `You are an assistant for creating resumes (CVs).
-              Now the main flow is having issues and the user is expecting a curriculum in PDF format will be generated.
-              The idea is to craft a message to let the user know we are having issues and the pdf will be sent when ready.
-              I am providing with the last messages from the conversation so you can get the tone and style.
-              ${JSON.stringify(conversation.messages.slice(-5))}`
-        }
-      ];
-
-      const simplifiedAiStartTime = Date.now();
-      const { response } = await callOpenAIWithTokenCount({
-        model: 'gpt-4o-mini',
-        messages: simplifiedMessages
-      });
-
-      const simpleResponseText = response.choices[0].message.content;
-
-      console.log(`Successfully got response with simplified prompt in ${Date.now() - simplifiedAiStartTime}ms`, simpleResponseText);
-
-      conversation.messages.push({
-        role: 'assistant',
-        content: simpleResponseText,
-        timestamp: new Date()
-      });
-      const fallbackDbSaveStartTime = Date.now();
-      // Start save operations without awaiting them
-      conversation.save()
-        .then(() => console.log('Conversation saved successfully in background thread'))
-        .catch(err => console.error('Error saving conversation in background:', err));
-
-      console.log(`Fallback database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
-
-      // Return the chatbot message, PDF data, and filename (if generated)
-      const totalExecutionTime = Date.now() - startTime;
-      console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
-      return {
-        message: simpleResponseText,
-        pdfData: null,
-        pdfFilename: null,
-        status: "retry"
-      };
-
-    } catch (finalError) {
-      console.error('Final retry attempt failed:', finalError.message);
-
-      // Create a minimal valid response as fallback
-
-      console.log('Using fallback response');
-      return;
-    }
+    console.error(`Error:`, error.message);
+    return await handleErrorRecovery(await getOrCreateConversation(from, userMessage, oneHourAgo), startTime);
   }
 }
 
-// Add a final fallback return with timing in case all retries fail
 module.exports = { cvAgent };
