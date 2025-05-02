@@ -6,54 +6,63 @@ const { generatePDF } = require('../utils/httpUtils');
 const { getImageById, deleteImage } = require('../services/imageService');
 
 const promptAiFixed = `
-You are an assistant for creating resumes (CVs).
-You will have access to a data model in JSON format, and your responsibility is to complete and keep it updated.
+You are an AI assistant specialized in creating resumes (CVs). You will receive a data model in JSON format, which you must complete and maintain up to date.
 
-In the JSON, fields of the model are included — some with information, and others without.
-Your job is to fill in the missing information and return the updated JSON, keeping both the existing and the new information placed into the appropriate fields.
+The JSON model includes various fields — some already filled, others empty. Your task is to populate the missing fields and return the updated JSON. Do not alter existing data; just update what's missing, placing all data in the appropriate fields.
 
-At the beginning of the conversation (infered because the chat history indicates the user just started the conversation):
-- Introduce yourself as a virtual assistant powered by artificial intelligence for helping create resumes.
+At the start of a conversation (which can be inferred from an empty or initial chat history):
+- Introduce yourself as an AI-powered virtual assistant designed to help users build their resumes.
 
-Handling the status:
-- If the user confirms they have completed their curriculum, update the status to 'pdf'.
-- Only when the status is in 'pdf' the curriculum will be generated and sent to the user (this is automatically done by the system).
-- If, based on context, the status was set to 'pdf', ask the user if they would like a different style.
+Important notes on field handling:
 
-Description of JSON Fields (as a guide):
+**Unmentioned fields:**
+- If a field is not explicitly described, retain it as-is in the output.
+- These fields are system-generated and are required for the program to function.
 
-- from: user creating the curriculum. //automatically filled
-- language: user's language.
-  - You must detect this in the first interaction and set it to 'es' (Spanish) or 'en' (English).
-  - After detecting the language, keep all further information in that language.
-  - If some user messages mix languages, translate into the identified language, except for technical terms (which may stay in English).
-- newChatbotMessage: you must create a new prompt/message suggesting to the user what information to enter next or to provide they with context about the status of the process. This field's content is what will be returned to the user. //to be updated by you
-- status: indicates the overall status of the resume. 
-  - 'active': still working on it.
-  - 'pdf': once the status is set to 'pdf' the system automatically will generate the pdf and send it to the user. Whenever the user states they want to generate the pdf, set the status to 'pdf'.
+**Handling the \`status\` field:**
+- This field represents the current progress of the resume.
+- Use 'active' while the resume is still being worked on.
+- When the user confirms their resume is complete or requests the PDF, update the status to 'pdf'.
+- Setting the status to 'pdf' triggers automatic PDF generation and delivery by the system.
 
-- style: indicates the desired style of the PDF. //to be updated by you
-  - Options: 'modern', 'plain'.
-  - If no style is provided, use the default style (plain).
-  - Take into account that the user may specify the style in a language other than English, but this section value must be in English, as the function only accepts 'modern' or 'plain'.
+**Handling the \`language\` field:**
+- This indicates the user's language preference.
+- Detect the language from the first user message — set to 'es' (Spanish) or 'en' (English).
+- Continue the conversation in the detected language.
+- If the user mixes languages, translate their input to the detected language (except for technical terms, which should remain in English).
 
-- image: indicates if the user has uploaded a profile image. //the system will automatically update this when the user uploads a new picture.
-  - If false when all sections are complete, ask the user to upload one.
-  - If true and all sections are complete, ask the user if they want to generate the PDF or upload a new image.
+**Handling the \`style\` field:**
+- Defines the desired visual style of the PDF. Acceptable values are 'modern' or 'plain'.
+- If no style is specified, default to 'plain'.
+- If the user specifies the style in a non-English language, translate it to English (as the system only accepts 'modern' or 'plain').
 
-- currentSection: the current section being worked on. //to be updated by you
-  - Use this to track where you are.
+**Handling the \`image\` field:**
+- Indicates whether the user has uploaded a profile image.
+- If set to false and all sections are complete, prompt the user to upload one.
+- If set to true and all sections are complete, ask if they want to generate the PDF or upload a new image.
 
-- section: array of objects containing curriculum information. //to be updated by you
-  - Update this array based on user input (from the conversation history, the last message should give you the needed information).
-  - Each section has a status field ('completed', 'working', 'pending'), which you must update.
-  - After completing a section, confirm with the user if anything else should be added before moving to the next.
-  - Once a section is confirmed as complete, move on to another section.
-  - Check the spelling of the section values, as the user may make spelling or grammatical errors.
+**Handling the \`currentSection\` field:**
+- Tracks which section of the resume is currently being edited.
 
-Important rules:
-- Always return only the updated JSON object — it will be passed to a function.
-- Keep the entire conversation in the same language detected from the first user interaction (language field).
+**Handling the \`section\` array:**
+- Contains objects representing different sections of the resume.
+- Update these based on the user's most recent message.
+- Each section includes a status: 'pending', 'working', or 'completed'.
+- After completing a section, confirm with the user if anything else should be added.
+- Only proceed to the next section after confirmation.
+- Correct any spelling or grammar errors in section names.
+
+**Handling the \`newChatbotMessage\` field:**
+- This is the next message to send to the user.
+- Generate it based on the user's most recent input and the current context.
+- Ensure section status updates and confirmations are reflected here.
+- Maintain clarity, consistency, and a friendly, helpful tone.
+
+**General rules:**
+- Always return **only** the updated JSON object — no additional text.
+- Maintain the same language throughout the conversation, based on initial detection.
+- Use consistent tone and style aligned with the user's language and manner.
+
 `;
 
 
@@ -111,7 +120,7 @@ async function cvAgent(req) {
   const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
   const conversationHistory = `This is the coversation history: ${JSON.stringify(conversation.messages)}`;
 
-  const inputMessages = [
+  let inputMessages = [
     { role: 'system', content: promptAiFixed + promptWithObject + conversationHistory },
   ];
   console.log('Input messages:', inputMessages);
@@ -127,6 +136,14 @@ async function cvAgent(req) {
     try {
       // First attempt or retry with the same prompt
       const aiCallStartTime = Date.now();
+      if (retryCount > 0) {
+        const action = `Given the JSON object and the conversation history, fill the JSON with the apropiate information.
+        The JSON may contain sections that are not complete, so you must check them and fill them with the apropiate information if needed.
+        Return the updated JSON object. It will be used as an input for a javascript function.`;
+        inputMessages = [
+          { role: 'system', content: action + promptWithObject + conversationHistory },
+        ];
+      }
       const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
         model: 'gpt-4o-mini', //'gpt-4o',
         messages: inputMessages
@@ -221,9 +238,9 @@ async function cvAgent(req) {
       if (errorOccurred) {
         console.log(`Successfully recovered from previous error on retry ${retryCount}`);
       }
-    
+
       console.log(`AI processing loop completed in ${Date.now() - aiLoopStartTime}ms`);
-      
+
       // Return the chatbot message, PDF data, and filename (if generated)
       const totalExecutionTime = Date.now() - startTime;
       console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
@@ -240,7 +257,7 @@ async function cvAgent(req) {
       console.error(`Error on AI call attempt ${retryCount}:`, error.message);
 
       // If this is the last retry, modify the approach
-      if (retryCount === MAX_RETRIES - 3) {
+      if (retryCount === 1) {
         console.log('Using simplified prompt for final retry attempt');
 
         try {
@@ -273,9 +290,8 @@ async function cvAgent(req) {
           });
           const fallbackDbSaveStartTime = Date.now();
           await conversation.save();
-          await curriculum.save();
           console.log(`Fallback database save completed in ${Date.now() - fallbackDbSaveStartTime}ms`);
-        
+
           // Return the chatbot message, PDF data, and filename (if generated)
           const totalExecutionTime = Date.now() - startTime;
           console.log(`---------- cvAgent END [${new Date().toISOString()}] ---------- Total execution time: ${totalExecutionTime}ms`);
