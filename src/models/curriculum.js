@@ -64,10 +64,10 @@ const curriculumSchema = new mongoose.Schema({
   // userMessage: { type: String, default: '' },
   // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
-  status: { type: String, default: 'active' }, // active, completed, pdf
-  style: { type: String, enum: ['modern', 'plain', 'traditional'], default: 'plain' },
+  status: { type: String, enum: ['active', 'completed', 'pdf'], default: 'active' }, // active, completed, pdf
+  style: { type: String, enum: ['modern', 'plain'], default: 'plain' },
   image: { type: Boolean, default: false },
-  currentSection: { type: String, default: 'information' }, // information, experiences, education, projects, skills
+  currentSection: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills', 'certifications', 'references'], default: 'information' }, // information, experiences, education, projects, skills
   section: [SectionSchema],
 }, {
   timestamps: true  

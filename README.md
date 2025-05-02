@@ -1,28 +1,106 @@
-<!-- TEST 8 -->
-# GeneratePDF Agent Service
+# CV Generator AI Agent
 
-An AI agent service that exposes a REST API endpoint for PDF generation.
+An intelligent agent service that helps users create professional CVs/resumes through a conversational interface and generates PDF documents.
+
+## Overview
+
+This service combines AI-powered conversation with PDF generation capabilities to help users create professional resumes. The system:
+
+1. Engages users in a conversation to gather CV/resume information
+2. Uses OpenAI's GPT models to structure and enhance the provided information
+3. Generates a professional PDF resume using an external PDF generation service
+4. Supports profile image uploads for the resume
+5. Tracks conversation history and maintains user data
+
+## Features
+
+- **AI-Powered Conversation**: Uses OpenAI's GPT models to guide users through the CV creation process
+- **PDF Generation**: Converts structured CV data into professional PDF documents
+- **Profile Image Support**: Allows users to upload and include profile images in their CVs
+- **Conversation Management**: Tracks and maintains conversation history
+- **Multiple Languages**: Supports both English and Spanish conversations
+- **Multiple CV Styles**: Offers different resume styles (modern, plain)
+- **Stateful Processing**: Maintains the state of the CV creation process
+- **IP Filtering**: Includes middleware for IP-based access control
+
+## Architecture
+
+The application follows a modular architecture:
+
+```
+src/
+├── config/          # Configuration files and database connection
+├── controllers/     # Request handlers
+├── middleware/      # Custom middleware (validation, IP filtering, etc.)
+├── models/          # Database models (Curriculum, Conversation)
+├── routes/          # API routes
+├── services/        # Business logic
+│   ├── cvAgentService/  # Main CV generation orchestration
+│   ├── imageService/    # Image handling functionality
+├── utils/           # Helper functions
+│   ├── httpUtils/       # PDF generation HTTP requests
+│   ├── tokenUtils/      # OpenAI token counting
+│   ├── fileStorage/     # File storage utilities
+└── app.js           # Main application file
+```
+
+## API Endpoints
+
+- **POST /api/agent/text**: Process text-based CV information
+- **POST /api/agent/image**: Upload and process profile images
+
+## Technical Stack
+
+- **Backend**: Node.js with Express
+- **AI**: OpenAI GPT models
+- **Database**: MongoDB for storing conversations and CV data
+- **File Handling**: Multer for image uploads
+- **Security**: Helmet for HTTP security headers, IP filtering
+- **PDF Generation**: External PDF generation service
 
 ## Setup
 
-1. Install dependencies:
+### Prerequisites
+
+- Node.js (v14+)
+- MongoDB
+- OpenAI API key
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/qbah3h/generatepdf-agent.git
+   cd generatepdf-agent
+   ```
+
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Run the application in development mode:
-   ```bash
-   npm run dev
+3. Create a `.env` file with the following variables:
+   ```
+   PORT=3000
+   MONGODB_URI=mongodb://localhost:27017/cv-generator
+   OPENAI_API_KEY=your_openai_api_key
+   SERVICE_URL=http://167.114.145.216:8090/api/cv/generate
+   ALLOWED_IPS=127.0.0.1,::1
    ```
 
-3. Run the application in production mode:
-   ```bash
-   npm start
-   ```
+4. Run the application:
+   - Development mode:
+     ```bash
+     npm run dev
+     ```
+   - Production mode:
+     ```bash
+     npm start
+     ```
 
-## CI/CD Pipeline Setup
+## CI/CD Pipeline
 
-This project uses GitHub Actions for CI/CD to automatically deploy to a VPS server with PM2. Follow these steps to set up the deployment pipeline:
+This project uses GitHub Actions for CI/CD to automatically deploy to a VPS server with PM2:
 
 1. On your VPS server, install Node.js, Git, and PM2:
    ```bash
@@ -39,70 +117,25 @@ This project uses GitHub Actions for CI/CD to automatically deploy to a VPS serv
 2. Create the following secrets in your GitHub repository (Settings > Secrets and variables > Actions):
    - `VPS_HOST`: Your VPS server IP address or domain name
    - `VPS_USERNAME`: SSH username for your VPS
-   - `VPS_SSH_KEY`: Private SSH key for authentication (the content of your private key file)
+   - `VPS_SSH_KEY`: Private SSH key for authentication
    - `VPS_PORT`: SSH port (usually 22)
    - `PROJECT_PATH`: Absolute path to your project directory on the VPS
 
-3. Set up SSH key-based authentication on your VPS:
-   - Generate an SSH key pair if you don't have one
-   - Add the public key to your VPS's `~/.ssh/authorized_keys` file
-   - Use the private key as the `VPS_SSH_KEY` secret in GitHub
+3. Set up SSH key-based authentication on your VPS
+4. Push to the main branch to trigger the deployment
 
-4. Push to the main branch to trigger the deployment:
-   ```bash
-   git push origin main
-   ```
+## How It Works
 
-The workflow will:
-- Pull the latest code from the main branch
-- Install dependencies
-- Start or reload the application using PM2
+1. The user sends a message to the `/api/agent/text` endpoint
+2. The system retrieves or creates a conversation and curriculum record for the user
+3. The message is processed by the OpenAI model with a specialized prompt
+4. The AI generates a response and updates the curriculum data
+5. If the curriculum status is set to 'pdf', the system generates a PDF using the external service
+6. The response (and PDF if generated) is returned to the user
 
-Based on your current codebase and requirements, here are the next steps I recommend:
+## External Services
 
-Database Integration
-Set up a MongoDB or PostgreSQL database to store:
-User conversations/history
-User preferences and settings
-Generated PDF metadata
-Create schemas for conversation history and user data
-API Structure Enhancement
-Implement proper middleware for:
-Authentication/Authorization
-Request validation
-Error handling
-Create separate route handlers and controllers
-Add request rate limiting
-LLM Integration
-Add OpenAI/other LLM provider integration
-Create a service layer to handle LLM interactions
-Implement prompt engineering and context management
-Add fallback mechanisms for API failures
-File Structure Reorganization
-CopyInsert
-src/
-├── config/          # Configuration files
-├── controllers/     # Request handlers
-├── middleware/      # Custom middleware
-├── models/         # Database models
-├── routes/         # API routes
-├── services/       # Business logic
-│   ├── llm/       # LLM integration
-│   ├── pdf/       # PDF generation
-│   └── chat/      # Chat history management
-├── utils/          # Helper functions
-└── app.js         # Main application file
-Conversation Management
-Implement conversation threading
-Add context management for LLM
-Store conversation history with metadata
-Add ability to reference previous conversations
-Error Handling & Logging
-Implement structured logging
-Add error monitoring (e.g., Sentry)
-Create proper error responses
-Would you like me to help you implement any of these components? We can start with:
-
-Setting up the database structure
-Reorganizing the code structure
-Implementing the LLM integration
+The application integrates with an external PDF generation service at `http://167.114.145.216:8090/api/cv/generate` that:
+- Accepts POST requests with JSON curriculum data
+- Optionally accepts profile images
+- Returns PDF content as an array buffer

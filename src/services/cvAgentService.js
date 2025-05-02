@@ -64,10 +64,10 @@ async function cvAgent(req) {
   console.log(`---------- cvAgent ---------- request.body ${JSON.stringify(req.body)}`)
   const { from, userMessage } = req.body;
 
-  const twelveHoursAgo = new Date();
-  twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 1);
+  const oneHourAgo = new Date();
+  oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-  let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: twelveHoursAgo } });
+  let conversation = await Conversation.findOne({ userId: from, updatedAt: { $gte: oneHourAgo } });
   if (!conversation) {
     conversation = await Conversation.create({
       userId: from,
@@ -76,12 +76,7 @@ async function cvAgent(req) {
     });
   }
 
-  let curriculum = await Curriculum.findOne({ from, updatedAt: { $gte: twelveHoursAgo } }) || await Curriculum.createWithDefaultSections(from);
-  // curriculum.userMessage = userMessage;
-
-  // if (conversation.messages.length > 0) {
-  //   curriculum.prevChatbotMessage = conversation.messages[conversation.messages.length - 1].content;
-  // }
+  let curriculum = await Curriculum.findOne({ from, updatedAt: { $gte: oneHourAgo } }) || await Curriculum.createWithDefaultSections(from);
 
   curriculum.newChatbotMessage = '';
 
