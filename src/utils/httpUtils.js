@@ -1,30 +1,56 @@
 const axios = require('axios');
+const FormData = require('form-data');
+const dotenv = require('dotenv');
+dotenv.config();
 
 /**
  * Calls the PDF generation service with the curriculum data
  * @param {Object} curriculumData - The curriculum data to generate a PDF from
- * @returns {Promise<Buffer>} - The PDF content as a buffer
+ * @param {Buffer} [image] - Optional profile image data
+ * @returns {Promise<Object>} - Object containing the PDF content as a buffer and the filename
  */
-async function generatePDF(curriculumData) {
+async function generatePDF(curriculumData, image) {
   try {
     // Format the curriculum data according to the PDF service requirements
     const formattedData = formatCurriculumData(curriculumData);
     
+    console.log('Formatted data:', formattedData);
+    // Create FormData instance
+    const formData = new FormData();
+    
+    // Add the curriculum JSON
+    formData.append('curriculumJson', JSON.stringify(formattedData));
+    
+    // Add the image if provided
+    if (image) {
+      formData.append('image', image, {
+        filename: 'profile.jpg',
+        contentType: 'image/jpeg'
+      });
+    }
+    
     // Call the PDF generation service
     const response = await axios.post(
-      'http://167.114.145.216:8090/api/cv/generate',
-      formattedData,
+      `${process.env.SERVICE_URL}`,
+      formData,
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'multipart/form-data'
         },
         responseType: 'arraybuffer'
       }
     );
     
-    // Return the PDF content as a buffer
-    return Buffer.from(response.data);
+    // Generate a filename based on the curriculum data
+    const filename = `${formattedData.fullName.replace(/\s+/g, '_')}.pdf`;
+    
+    console.log(`Generated PDF with filename: ${filename}`);
+    
+    // Return both the PDF content as a buffer and the filename
+    return {
+      pdfBuffer: Buffer.from(response.data),
+      filename: filename
+    };
   } catch (error) {
     console.error('Error generating PDF:', error.message);
     throw new Error(`Failed to generate PDF: ${error.message}`);
@@ -55,7 +81,15 @@ function formatCurriculumData(curriculum) {
   
   // Extract skills section
   const skillsSection = curriculum.section.find(s => s.name === 'skills');
-  const skills = information.skills || [];
+  const skills = skillsSection ? skillsSection.content : [];
+  
+  // Extract certifications section
+  const certificationsSection = curriculum.section.find(s => s.name === 'certifications');
+  const certifications = certificationsSection ? certificationsSection.content : [];
+  
+  // Extract references section
+  const referencesSection = curriculum.section.find(s => s.name === 'references');
+  const references = referencesSection ? referencesSection.content : [];
   
   // Format the data according to the PDF service requirements
   return {
@@ -64,7 +98,12 @@ function formatCurriculumData(curriculum) {
     phone: information.phone || '',
     address: information.address || '',
     summary: information.summary || '',
-    skills: skills,
+    language: information.language || 'es',
+    style: curriculum.style || 'plain',
+    skills: skills.map(skill => ({
+      title: skill.title || '',
+      description: skill.description || ''
+    })),
     experiences: experiences.map(exp => ({
       jobTitle: exp.jobTitle || '',
       company: exp.company || '',
@@ -82,6 +121,16 @@ function formatCurriculumData(curriculum) {
     projects: projects.map(proj => ({
       title: proj.title || '',
       description: proj.description || ''
+    })),
+    certifications: certifications.map(cert => ({
+      name: cert.name || '',
+      link: cert.link || '',
+      date: cert.date || ''
+    })),
+    references: references.map(ref => ({
+      name: ref.name || '',
+      phone: ref.phone || '',
+      email: ref.email || ''
     }))
   };
 }

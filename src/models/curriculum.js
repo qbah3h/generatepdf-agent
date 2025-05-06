@@ -7,7 +7,11 @@ const InformationSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   address: { type: String, default: '' },
   summary: { type: String, default: '' },
-  skills: { type: [String], default: [] }
+}, { _id: false });
+
+const SkillsSchema = new mongoose.Schema({
+  title: { type: String, default: '' },
+  description: { type: String, default: '' }
 }, { _id: false });
 
 const ExperienceSchema = new mongoose.Schema({
@@ -31,10 +35,22 @@ const ProjectSchema = new mongoose.Schema({
   description: { type: String, default: '' }
 }, { _id: false });
 
+const CertificationsSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  link: { type: String, default: '' },
+  date: { type: String, default: '' }
+}, { _id: false });
+
+const ReferencesSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  email: { type: String, default: '' }
+}, { _id: false });
+
 // Section schema with discriminated content
 const SectionSchema = new mongoose.Schema({
   status: { type: String, enum: ['completed', 'working', 'pending'], default: 'pending' },
-  name: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills'], required: true },
+  name: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills', 'certifications', 'references'], required: true },
   content: {
     type: [mongoose.Schema.Types.Mixed],
     required: true
@@ -44,12 +60,14 @@ const SectionSchema = new mongoose.Schema({
 // Curriculum schema
 const curriculumSchema = new mongoose.Schema({
   from: { type: String, required: true },
-  userMessage: { type: String, default: '' },
-  prevChatbotMessage: { type: String, default: '' },
+  language: {type: String, default: 'es'},
+  // userMessage: { type: String, default: '' },
+  // prevChatbotMessage: { type: String, default: '' },
   newChatbotMessage: { type: String, default: '' },
-  status: { type: String, default: 'active' }, // active, completed
+  status: { type: String, enum: ['active', 'completed', 'pdf'], default: 'active' }, // active, completed, pdf
+  style: { type: String, enum: ['modern', 'plain'], default: 'plain' },
   image: { type: Boolean, default: false },
-  currentSection: { type: String, default: 'information' }, // information, experiences, education, projects, skills
+  currentSection: { type: String, enum: ['information', 'experiences', 'education', 'projects', 'skills', 'certifications', 'references'], default: 'information' }, // information, experiences, education, projects, skills
   section: [SectionSchema],
 }, {
   timestamps: true  
@@ -105,6 +123,24 @@ curriculumSchema.statics.createWithDefaultSections = async function(from) {
       content: [{
         title: '',
         description: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'certifications',
+      content: [{
+        name: '',
+        link: '',
+        date: ''
+      }]
+    },
+    {
+      status: 'pending',
+      name: 'references',
+      content: [{
+        name: '',
+        phone: '',
+        email: ''
       }]
     }
   ];
