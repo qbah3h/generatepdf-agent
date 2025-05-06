@@ -14,7 +14,7 @@ This service combines AI-powered conversation with PDF generation capabilities t
 
 ## Features
 
-- **AI-Powered Conversation**: Uses OpenAI's GPT models to guide users through the CV creation process
+- **AI-Powered Conversation**: Uses OpenAI's GPT-4o-mini model to guide users through the CV creation process
 - **PDF Generation**: Converts structured CV data into professional PDF documents
 - **Profile Image Support**: Allows users to upload and include profile images in their CVs
 - **Conversation Management**: Tracks and maintains conversation history
@@ -22,6 +22,7 @@ This service combines AI-powered conversation with PDF generation capabilities t
 - **Multiple CV Styles**: Offers different resume styles (modern, plain)
 - **Stateful Processing**: Maintains the state of the CV creation process
 - **IP Filtering**: Includes middleware for IP-based access control
+- **Error Recovery**: Implements robust error handling with simplified fallback responses
 
 ## Architecture
 
@@ -30,17 +31,16 @@ The application follows a modular architecture:
 ```
 src/
 ├── config/          # Configuration files and database connection
-├── controllers/     # Request handlers
-├── middleware/      # Custom middleware (validation, IP filtering, etc.)
+├── middleware/      # Custom middleware (IP filtering, orchestration)
 ├── models/          # Database models (Curriculum, Conversation)
 ├── routes/          # API routes
 ├── services/        # Business logic
-│   ├── cvAgentService/  # Main CV generation orchestration
-│   ├── imageService/    # Image handling functionality
+│   ├── cvAgentService.js  # Main CV generation orchestration
+│   ├── imageService.js    # Image handling functionality
 ├── utils/           # Helper functions
-│   ├── httpUtils/       # PDF generation HTTP requests
-│   ├── tokenUtils/      # OpenAI token counting
-│   ├── fileStorage/     # File storage utilities
+│   ├── httpUtils.js      # PDF generation HTTP requests
+│   ├── tokenUtils.js     # OpenAI token counting
+│   ├── fileStorage.js    # File storage utilities
 └── app.js           # Main application file
 ```
 
@@ -52,10 +52,10 @@ src/
 ## Technical Stack
 
 - **Backend**: Node.js with Express
-- **AI**: OpenAI GPT models
+- **AI**: OpenAI GPT-4o-mini model
 - **Database**: MongoDB for storing conversations and CV data
 - **File Handling**: Multer for image uploads
-- **Security**: Helmet for HTTP security headers, IP filtering
+- **Security**: IP filtering middleware
 - **PDF Generation**: External PDF generation service
 
 ## Setup
@@ -98,44 +98,29 @@ src/
      npm start
      ```
 
-## CI/CD Pipeline
-
-This project uses GitHub Actions for CI/CD to automatically deploy to a VPS server with PM2:
-
-1. On your VPS server, install Node.js, Git, and PM2:
-   ```bash
-   # Update package lists
-   sudo apt update
-   
-   # Install Node.js and npm
-   sudo apt install nodejs npm
-   
-   # Install PM2 globally
-   sudo npm install -g pm2
-   ```
-
-2. Create the following secrets in your GitHub repository (Settings > Secrets and variables > Actions):
-   - `VPS_HOST`: Your VPS server IP address or domain name
-   - `VPS_USERNAME`: SSH username for your VPS
-   - `VPS_SSH_KEY`: Private SSH key for authentication
-   - `VPS_PORT`: SSH port (usually 22)
-   - `PROJECT_PATH`: Absolute path to your project directory on the VPS
-
-3. Set up SSH key-based authentication on your VPS
-4. Push to the main branch to trigger the deployment
-
 ## How It Works
 
-1. The user sends a message to the `/api/agent/text` endpoint
-2. The system retrieves or creates a conversation and curriculum record for the user
-3. The message is processed by the OpenAI model with a specialized prompt
-4. The AI generates a response and updates the curriculum data
-5. If the curriculum status is set to 'pdf', the system generates a PDF using the external service
-6. The response (and PDF if generated) is returned to the user
+1. The user sends a message to the `/api/agent/text` endpoint or uploads an image to `/api/agent/image`
+2. The orchestrateProcessing middleware handles the request and passes it to the cvAgent service
+3. The cvAgent service retrieves or creates conversation and curriculum records for the user
+4. The message is processed by the OpenAI GPT-4o-mini model with a specialized prompt
+5. The AI generates a response and updates the curriculum data
+6. If the curriculum status is set to 'pdf', the system generates a PDF using the external service
+7. The response (and PDF if generated) is returned to the user
 
-## External Services
+## Error Handling
+
+The system implements robust error recovery:
+1. If the main AI processing fails, it attempts to recover with a simplified prompt
+2. Token usage is carefully tracked and monitored
+3. Asynchronous data saving prevents blocking the main response flow
+
+## External PDF Service
 
 The application integrates with an external PDF generation service at `http://167.114.145.216:8090/api/cv/generate` that:
-- Accepts POST requests with JSON curriculum data
+- Expects POST requests with Content-Type: application/json
+- Requires Accept: application/json
+- Accepts JSON curriculum data following a specific structure
 - Optionally accepts profile images
-- Returns PDF content as an array buffer
+- Returns PDF content as an arraybuffer
+- Response should be served with Content-Type: application/pdf
