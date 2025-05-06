@@ -1,9 +1,8 @@
 const Curriculum = require('../models/curriculum');
 const Conversation = require('../models/conversation');
-// const PdfMetadata = require('../models/pdfMetadata');
 const { callOpenAIWithTokenCount } = require('../utils/tokenUtils');
 const { generatePDF } = require('../utils/httpUtils');
-const { getImageById, deleteImage } = require('../services/imageService');
+const { getImageById } = require('../services/imageService');
 
 /**
  * Constants and configuration
@@ -72,6 +71,8 @@ Important notes on field handling:
 
 `;
 
+
+//+- 50% token improve
 const promptAiFixed = `
 You are an AI assistant for building resumes using a JSON model. Some fields are filled; others are empty. Complete missing fields and return only the updated JSON. Do not alter existing data. Maintain the original structure.
 
@@ -271,6 +272,8 @@ async function handlePDFGeneration(curriculum, profileImage, conversation) {
       ${JSON.stringify(conversation.messages.slice(-5))}`;
     
     const aiCallStartTime = Date.now();
+
+    // construct a valid Token count for each interaction in a separated model pero suer
     const { response } = await callOpenAIWithTokenCount({
       model: 'gpt-4o-mini',
       messages: [
@@ -346,6 +349,8 @@ async function handleErrorRecovery(conversation, startTime) {
     ];
     
     const simplifiedAiStartTime = Date.now();
+    
+    // construct a valid Token count for each interaction in a separated model pero suer
     const { response } = await callOpenAIWithTokenCount({
       model: 'gpt-4o-mini',
       messages: simplifiedMessages
@@ -411,6 +416,7 @@ async function cvAgent(req) {
     
     console.log('Input messages:', inputMessages);
     
+    // construct a valid Token count for each interaction in a separated model pero suer
     const { response, inputTokens, outputTokens } = await callOpenAIWithTokenCount({
       model: 'gpt-4o-mini', //'gpt-4o',
       messages: inputMessages

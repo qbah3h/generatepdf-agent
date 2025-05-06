@@ -1,6 +1,5 @@
 const express = require('express');
 const ipFilter = require('../middleware/ipFilter');
-const { validate, textInputValidation, imageInputValidation } = require('../middleware/validator');
 const orchestrateProcessing = require('../middleware/orchestrateProcessing');
 const { upload } = require('../utils/fileStorage');
 const { saveImage } = require('../services/imageService');
@@ -13,8 +12,6 @@ router.use(ipFilter);
 // Text processing endpoint
 router.post(
   '/text',
-  // pdfGenerationLimiter,
-  //validate(textInputValidation),
   orchestrateProcessing,
   (req, res) => {
     res.json({
