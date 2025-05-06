@@ -84,7 +84,7 @@ src/
    PORT=3000
    MONGODB_URI=mongodb://localhost:27017/cv-generator
    OPENAI_API_KEY=your_openai_api_key
-   SERVICE_URL=http://167.114.145.216:8090/api/cv/generate
+   SERVICE_URL=http://localhost:8090/api/cv/generate
    ALLOWED_IPS=127.0.0.1,::1
    ```
 
@@ -117,7 +117,7 @@ The system implements robust error recovery:
 
 ## External PDF Service
 
-The application integrates with an external PDF generation service at `http://167.114.145.216:8090/api/cv/generate` that:
+The application integrates with an external PDF generation service at `http://localhost:8090/api/cv/generate` that:
 - Expects POST requests with Content-Type: application/json
 - Requires Accept: application/json
 - Accepts JSON curriculum data following a specific structure
