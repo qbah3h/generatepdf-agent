@@ -70,7 +70,8 @@ Important notes on field handling:
 - Always return **only** the updated JSON object — no additional text.
 - Maintain the same language throughout the conversation, based on initial detection.
 - Use consistent tone and style aligned with the user's language and manner.
-- Answer in less than 2 sentences.
+- Answer in **no more than 2 short sentences**, only if absolutely necessary.
+- **Do not echo or summarize** user input in any form.
 `;
 
 
