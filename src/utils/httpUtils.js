@@ -11,6 +11,7 @@ dotenv.config();
  */
 async function generatePDF(curriculumData, image) {
   try {
+    console.log('curriculumData', curriculumData);
     // Format the curriculum data according to the PDF service requirements
     const formattedData = formatCurriculumData(curriculumData);
     
