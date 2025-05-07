@@ -38,7 +38,7 @@ Important notes on field handling:
 - If the user mixes languages, translate their input to the detected language (except for technical terms, which should remain in English).
 
 **Handling the \`style\` field:**
-- Defines the desired visual style of the PDF. Acceptable values are 'modern' or 'plain'. 'plain' is the default and dones not shows the profile picture, only plain sections and text.
+- Defines the desired visual style of the PDF. Acceptable intent from the user are Modern or Plain. 'plain' is the default and does not show the profile picture, only plain sections and text. 'modern' shows the profile picture and modern style.
 - If no style is specified, default to 'plain'.
 - If the user specifies the style in a non-English language, translate it to English (as the system only accepts 'modern' or 'plain').
 
