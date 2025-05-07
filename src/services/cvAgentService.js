@@ -260,7 +260,6 @@ async function handlePDFGeneration(curriculum, profileImage, conversation) {
   try {
     // Generate PDF when conversation is completed
     const pdfStartTime = Date.now();
-    curriculum.language = 'en';
     const pdfResult = await generatePDF(curriculum, profileImage);
     const pdfData = pdfResult.pdfBuffer;
     const pdfFilename = pdfResult.filename;
