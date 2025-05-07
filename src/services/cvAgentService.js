@@ -182,7 +182,8 @@ function prepareAIPrompt(curriculum, messages) {
   Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}
   `;
   const conversationHistory = `
-  This is the coversation history: ${JSON.stringify(messages)}
+  These are the last 5 messages in the conversation. You can infer what was said from them and from the completed sections in the JSON:
+  ${JSON.stringify(messages.slice(-5))}
   `;
   
   return [
