@@ -98,7 +98,7 @@ function formatCurriculumData(curriculum) {
     phone: information.phone || '',
     address: information.address || '',
     summary: information.summary || '',
-    language: information.language || 'en',
+    language: information.language || '',
     style: curriculum.style || 'plain',
     skills: skills.map(skill => ({
       title: skill.title || '',
