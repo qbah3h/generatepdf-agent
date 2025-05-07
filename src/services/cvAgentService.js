@@ -38,7 +38,7 @@ Important notes on field handling:
 - If the user mixes languages, translate their input to the detected language (except for technical terms, which should remain in English).
 
 **Handling the \`style\` field:**
-- Defines the desired visual style of the PDF. Acceptable values are 'modern' or 'plain'.
+- Defines the desired visual style of the PDF. Acceptable values are 'modern' or 'plain'. 'plain' is the default and dones not shows the profile picture, only plain sections and text.
 - If no style is specified, default to 'plain'.
 - If the user specifies the style in a non-English language, translate it to English (as the system only accepts 'modern' or 'plain').
 
@@ -76,7 +76,7 @@ Important notes on field handling:
 const promptAiFixed = `
 You are an AI assistant for building resumes using a JSON model. Some fields are filled; others are empty. Complete missing fields and return only the updated JSON. Do not alter existing data. Maintain the original structure.
 
-At the beginning (inferred from a new chat), introduce yourself as an AI assistant for resume creation.
+IMPORTANT:At the beginning (inferred from a new chat), introduce yourself as an AI assistant for resume creation.
 
 Field handling rules:
 
@@ -176,11 +176,15 @@ async function getUserProfileImage(userId) {
  * @returns {Array} Array of message objects for the AI
  */
 function prepareAIPrompt(curriculum, messages) {
-  const promptWithObject = `Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}`;
-  const conversationHistory = `This is the coversation history: ${JSON.stringify(messages)}`;
+  const promptWithObject = `
+  Here is the exact JSON schema you must work on and return when updated: ${JSON.stringify(curriculum)}
+  `;
+  const conversationHistory = `
+  This is the coversation history: ${JSON.stringify(messages)}
+  `;
   
   return [
-    { role: 'system', content: promptAiFixed + promptWithObject + conversationHistory },
+    { role: 'system', content: promptAiFixed0 + promptWithObject + conversationHistory },
   ];
 }
 
@@ -264,11 +268,11 @@ async function handlePDFGeneration(curriculum, profileImage, conversation) {
     
     // Generate a dynamic message using OpenAI instead of hardcoded text
     const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
-      Your task is to generate a brief and friendly message in the same language as the user (detected from previous messages). 
+      Your task is to generate a brief and friendly message. 
       The message should inform the user that the PDF was sent. 
-      Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain') (translate to the user language).
+      Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain').
       Respond with only the message content as a string.
-      I am providing with the last messages from the conversation to help you understand the context, keep tone, style and language.
+      I am providing with the last messages from the conversation to help you understand the context, keep tone, style.
       ${JSON.stringify(conversation.messages.slice(-5))}`;
     
     const aiCallStartTime = Date.now();
