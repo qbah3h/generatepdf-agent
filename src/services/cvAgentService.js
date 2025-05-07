@@ -63,6 +63,7 @@ Important notes on field handling:
 - Generate it based on the user's most recent input and the current context.
 - Ensure section status updates and confirmations are reflected here.
 - Maintain clarity, consistency, and a friendly, helpful tone.
+- Always return some text in this field as it will be sent to the user.
 
 **General rules:**
 - Always return **only** the updated JSON object — no additional text.
