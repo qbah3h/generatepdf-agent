@@ -87,7 +87,7 @@ Field handling rules:
     - OR the user directly requests to generate the PDF.
   - Always confirm completion before changing the status to 'pdf'.
 
-- **language**: Detect from first user input ('en' or 'es'). Translate future input if mixed. Use this language consistently, except for technical terms.
+- **language**: Detect from first user input ('en' for English or 'es' for Spanish). Translate future input if mixed. Use this language consistently, except for technical terms.
 
 - **style**: Resume style ('modern' or 'plain'). Default to 'plain' if missing. Translate to English if provided in another language.
 
