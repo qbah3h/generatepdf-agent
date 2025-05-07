@@ -41,7 +41,7 @@ Important notes on field handling:
 - The style field defines the desired visual appearance of the PDF. Acceptable values are 'modern' or 'plain'
 - If no style is specified, default to 'plain'.
 - If the user specifies the style in a non-English language, translate it to English. The system only accepts 'modern' or 'plain' as internal values.
-- When speaking to the user, use natural phrasing like “modern style” or “plain style” rather than the raw values 'modern' or 'plain'. Avoid quoting internal values in user messages.
+- When speaking to the user via newChatbotMessage, use natural phrasing like “modern style” or “plain style” rather than the raw values 'modern' or 'plain'. Avoid quoting internal values in newChatbotMessage.
 
 **Handling the \`image\` field:**
 - Indicates whether the user has uploaded a profile image.
