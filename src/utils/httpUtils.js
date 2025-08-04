@@ -49,7 +49,7 @@ async function generatePDF(curriculumData, image) {
     
     // Return both the PDF content as a buffer and the filename
     return {
-      pdfBuffer: Buffer.from(response.data),
+      pdfBuffer: Buffer.from(response.data).toString('base64'),
       filename: filename
     };
   } catch (error) {

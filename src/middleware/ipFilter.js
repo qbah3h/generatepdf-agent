@@ -23,8 +23,8 @@ const ipFilter = (req, res, next) => {
     return res.status(403).json({ 
       error: 'Access denied. IP not allowed.',
       detectedIP: clientIP,
-      rawIP: rawClientIP,
-      allowedIPs: allowedIPs
+      // rawIP: rawClientIP,
+      // allowedIPs: allowedIPs
     });
   }
   
