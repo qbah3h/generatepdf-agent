@@ -37,16 +37,9 @@ Important notes on field handling:
 - Continue the conversation in the detected language.
 - If the user mixes languages, translate their input to the detected language (except for technical terms, which should remain in English).
 
-**Handling the \`style\` field:**
-- The style field defines the desired visual appearance of the PDF. Acceptable values are 'modern' or 'plain'
-- If no style is specified, default to 'plain'.
-- If the user specifies the style in a non-English language, translate it to English. The system only accepts 'modern' or 'plain' as internal values.
-- When speaking to the user via newChatbotMessage, use natural phrasing like “modern style” or “plain style” rather than the raw values 'modern' or 'plain'. Avoid quoting internal values in newChatbotMessage.
-
 **Handling the \`image\` field:**
 - Indicates whether the user has uploaded a profile image.
-- If set to false and all sections are complete, prompt the user to upload one.
-- If set to true and all sections are complete, ask if they want to generate the PDF or upload a new image.
+- If set to false and all sections are complete, ask the user to upload one before allowing generate the pdf.
 
 **Handling the \`currentSection\` field:**
 - Tracks which section of the resume is currently being edited.
@@ -270,11 +263,18 @@ async function handlePDFGeneration(curriculum, profileImage, conversation) {
     console.log(`PDF generated successfully in ${Date.now() - pdfStartTime}ms`);
     curriculum.status = 'completed';
     
+    // const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
+    //   Your task is to generate a brief and friendly message. 
+    //   The message should inform the user that the PDF was sent. 
+    //   Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain').
+    //   Respond with only the message content as a string.
+    //   I am providing with the last messages from the conversation to help you understand the context, keep tone, style.
+    //   ${JSON.stringify(conversation.messages.slice(-5))}`;
+    
     // Generate a dynamic message using OpenAI instead of hardcoded text
     const systemPromptPdfGenerating = `The resume has been finalized and the PDF was sent. 
       Your task is to generate a brief and friendly message. 
       The message should inform the user that the PDF was sent. 
-      Also, ask if they would like to regenerate the PDF with a different style ('modern' or 'plain').
       Respond with only the message content as a string.
       I am providing with the last messages from the conversation to help you understand the context, keep tone, style.
       ${JSON.stringify(conversation.messages.slice(-5))}`;
