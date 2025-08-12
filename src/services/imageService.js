@@ -25,11 +25,12 @@ async function saveImage(fileData, from) {
 }
 
 /**
- * Get image by ID - returns metadata and binary data
+ * Get image by ID - returns metadata and binary data for the most recent image
  */
 async function getImageById(from) {
   try {
-    const image = await Image.findOne({ from });
+    // Find the most recent image for this user by sorting by createdAt in descending order
+    const image = await Image.findOne({ from }).sort({ createdAt: -1 });
     if (!image) {
       throw new Error('Image not found');
     }
