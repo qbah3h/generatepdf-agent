@@ -1,126 +1,104 @@
-# CV Generator AI Agent
+# generatepdf-agent — Conversational AI Resume Builder
 
-An intelligent agent service that helps users create professional CVs/resumes through a conversational interface and generates PDF documents.
+The AI engine behind the resume assistant. This Node.js/Express service manages conversational interactions with users, guides them through resume creation section by section, and orchestrates PDF generation through the companion Java service.
 
-## Overview
+## How It Works
 
-This service combines AI-powered conversation with PDF generation capabilities to help users create professional resumes. The system:
+```
+User Message
+      |
+      v
+  [Express Router + IP Filter]
+      |
+      v
+  [Orchestration Middleware]
+      |
+      v
+  [cvAgentService]
+      |
+      +---> getOrCreateConversation()   --- MongoDB lookup/create
+      +---> getOrCreateCurriculum()     --- Curriculum with default sections
+      +---> getUserProfileImage()       --- Image retrieval
+      +---> prepareAIPrompt()           --- System prompt + curriculum JSON + history
+      +---> OpenAI GPT-4o-mini          --- AI processes and returns updated JSON
+      +---> processAIResponse()         --- Parse and validate AI output
+      +---> handlePDFGeneration()       --- Trigger PDF service when ready
+      +---> saveDataAsync()             --- Non-blocking persistence
+      |
+      v
+  Response (message + optional PDF)
+```
 
-1. Engages users in a conversation to gather CV/resume information
-2. Uses OpenAI's GPT models to structure and enhance the provided information
-3. Generates a professional PDF resume using an external PDF generation service
-4. Supports profile image uploads for the resume
-5. Tracks conversation history and maintains user data
+## Key Design Patterns
 
-## Features
+- **Middleware Pipeline**: IP filtering → rate limiting → orchestration → response
+- **Functional Decomposition**: Each step of the CV agent is an isolated, testable function
+- **State Machine**: Curriculum sections track status (`pending` → `working` → `completed`)
+- **Factory Pattern**: `Curriculum.createWithDefaultSections()` for consistent initialization
+- **Async Fire-and-Forget**: Database saves are non-blocking to minimize response latency
+- **Error Recovery**: Graceful degradation with simplified prompts on failure
 
-- **AI-Powered Conversation**: Uses OpenAI's GPT-4o-mini model to guide users through the CV creation process
-- **PDF Generation**: Converts structured CV data into professional PDF documents
-- **Profile Image Support**: Allows users to upload and include profile images in their CVs
-- **Conversation Management**: Tracks and maintains conversation history
-- **Multiple Languages**: Supports both English and Spanish conversations
-- **Multiple CV Styles**: Offers different resume styles (modern, plain)
-- **Stateful Processing**: Maintains the state of the CV creation process
-- **IP Filtering**: Includes middleware for IP-based access control
-- **Error Recovery**: Implements robust error handling with simplified fallback responses
-
-## Architecture
-
-The application follows a modular architecture:
+## Project Structure
 
 ```
 src/
-├── config/          # Configuration files and database connection
-├── middleware/      # Custom middleware (IP filtering, orchestration)
-├── models/          # Database models (Curriculum, Conversation)
-├── routes/          # API routes
-├── services/        # Business logic
-│   ├── cvAgentService.js  # Main CV generation orchestration
-│   ├── imageService.js    # Image handling functionality
-├── utils/           # Helper functions
-│   ├── httpUtils.js      # PDF generation HTTP requests
-│   ├── tokenUtils.js     # OpenAI token counting
-│   ├── fileStorage.js    # File storage utilities
-└── app.js           # Main application file
+├── config/
+│   ├── database.js              # MongoDB connection
+│   └── openai.js                # OpenAI client setup
+├── middleware/
+│   ├── ipFilter.js              # IP-based access control
+│   ├── rateLimiter.js           # Rate limiting
+│   └── orchestrateProcessing.js # Request orchestration
+├── models/
+│   ├── curriculum.js            # Mongoose schema with sub-schemas and factory method
+│   ├── conversation.js          # Conversation history model
+│   └── image.js                 # Profile image model
+├── routes/
+│   └── agent.js                 # Express routes (text + image endpoints)
+├── services/
+│   ├── cvAgentService.js        # Core AI orchestration logic
+│   └── imageService.js          # Image CRUD operations
+├── utils/
+│   ├── httpUtils.js             # PDF service HTTP client + data formatting
+│   ├── tokenUtils.js            # OpenAI token counting wrapper
+│   └── fileStorage.js           # Multer file storage configuration
+└── app.js                       # Express application entry point
 ```
 
 ## API Endpoints
 
-- **POST /api/agent/text**: Process text-based CV information
-- **POST /api/agent/image**: Upload and process profile images
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/agent/text` | Send a message to the CV building conversation |
+| `POST` | `/api/agent/image` | Upload a profile image for the resume |
 
-## Technical Stack
+## Tech Stack
 
-- **Backend**: Node.js with Express
-- **AI**: OpenAI GPT-4o-mini model
-- **Database**: MongoDB for storing conversations and CV data
-- **File Handling**: Multer for image uploads
-- **Security**: IP filtering middleware
-- **PDF Generation**: External PDF generation service
+| Component | Technology |
+|-----------|-----------|
+| **Runtime** | Node.js 14+ |
+| **Framework** | Express |
+| **AI** | OpenAI GPT-4o-mini |
+| **Database** | MongoDB (Mongoose ODM) |
+| **File Uploads** | Multer |
+| **Security** | Helmet, CORS, IP filtering |
+| **Process Manager** | PM2 (ecosystem.config.js) |
 
 ## Setup
 
-### Prerequisites
+```bash
+npm install
+cp .env.example .env  # Configure environment variables
+npm run dev            # Development mode
+npm start              # Production mode
+```
 
-- Node.js (v14+)
-- MongoDB
-- OpenAI API key
+### Environment Variables
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/qbah3h/generatepdf-agent.git
-   cd generatepdf-agent
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file with the following variables:
-   ```
-   PORT=3000
-   MONGODB_URI=mongodb://localhost:27017/cv-generator
-   OPENAI_API_KEY=your_openai_api_key
-   SERVICE_URL=http://localhost:8090/api/cv/generate
-   ALLOWED_IPS=127.0.0.1,::1
-   ```
-
-4. Run the application:
-   - Development mode:
-     ```bash
-     npm run dev
-     ```
-   - Production mode:
-     ```bash
-     npm start
-     ```
-
-## How It Works
-
-1. The user sends a message to the `/api/agent/text` endpoint or uploads an image to `/api/agent/image`
-2. The orchestrateProcessing middleware handles the request and passes it to the cvAgent service
-3. The cvAgent service retrieves or creates conversation and curriculum records for the user
-4. The message is processed by the OpenAI GPT-4o-mini model with a specialized prompt
-5. The AI generates a response and updates the curriculum data
-6. If the curriculum status is set to 'pdf', the system generates a PDF using the external service
-7. The response (and PDF if generated) is returned to the user
-
-## Error Handling
-
-The system implements robust error recovery:
-1. If the main AI processing fails, it attempts to recover with a simplified prompt
-2. Token usage is carefully tracked and monitored
-3. Asynchronous data saving prevents blocking the main response flow
-
-## External PDF Service
-
-The application integrates with an external PDF generation service at `http://localhost:8090/api/cv/generate` that:
-- Expects POST requests with Content-Type: application/json
-- Requires Accept: application/json
-- Accepts JSON curriculum data following a specific structure
-- Optionally accepts profile images
-- Returns PDF content as an arraybuffer
-- Response should be served with Content-Type: application/pdf
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 3000) |
+| `MONGODB_URI` | MongoDB connection string |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `SERVICE_URL` | PDF service URL (`http://localhost:8090/api/cv/generate`) |
+| `ALLOWED_IPS` | Comma-separated allowed client IPs |
